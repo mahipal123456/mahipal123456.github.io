@@ -642,10 +642,11 @@ function generateAndPreview() {
             imageContainer.style.boxShadow = '2px 2px 5px rgba(0, 0, 0, 0.5)';
             // containerWrapper.style.border = "1px solid black";
             document.getElementById('loader').style.display = 'none';
+            document.getElementById('drawing-canvas').style.border = '1px solid black';
             
         });
     }, 1000); 
-    canvas.style.border = '1px solid black';
+    
 }
 
         function removeImage(imageContainer, image) {
@@ -1517,3 +1518,23 @@ function drawImages() {
 //     convertToHTML(); // Call your function whenever content changes
 //   });
   
+
+function showPopup() {
+    const popup = document.getElementById('support-popup');
+    popup.style.display = 'block';
+}
+
+function closePopup() {
+    const popup = document.getElementById('support-popup');
+    popup.style.display = 'none';
+}
+
+function redirectToSupport() {
+    closePopup(); // Close the popup
+    window.scrollTo(0, document.getElementById('support').offsetTop);
+}
+
+// Show the popup 10 seconds after the page loads
+window.onload = function() {
+    setTimeout(showPopup, 30000); // 10000 milliseconds = 10 seconds
+};

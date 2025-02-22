@@ -451,3 +451,62 @@ display: block; /* Show answer when active */
     display: block;
 }
 }
+.support-popup {
+    display: none;
+    position: fixed;
+    top: 50%; /* Center vertically */
+    left: 50%; /* Center horizontally */
+    transform: translate(-50%, -50%); /* Adjust position to truly center */
+    background-color: rgba(255, 223, 0, 0.9); /* Bright yellow background */
+    color: #333; /* Dark text color */
+    padding: 20px;
+    text-align: center;
+    z-index: 1000;
+    width: 90%;
+    border: 2px solid #ff9800; /* Orange border */
+    border-radius: 10px; /* Rounded corners */
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.5); /* Shadow effect */
+  }
+  .popup-content{
+    display: flex;
+flex-direction: column;
+align-items: center;
+row-gap: 5px;
+font-size: 12px;
+
+  
+    background-color: white;
+padding: 20px;
+border-radius: 5px;
+box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+z-index: 1001;
+
+}
+  .popup-content {
+    position: relative;
+  }
+  
+  .close-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: none;
+    border: none;
+    color: #ff0000; /* Red color for the close button */
+    font-size: 20px;
+    cursor: pointer;
+  }
+  
+  .learn-more-btn {
+    background-color: #4CAF50; /* Green background */
+    color: white; /* White text */
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px; /* Rounded corners for button */
+    font-size: 16px;
+    cursor: pointer;
+  }
+  
+  .learn-more-btn:hover {
+    background-color: #45a049; /* Darker green on hover */
+  }

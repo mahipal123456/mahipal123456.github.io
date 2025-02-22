@@ -34,3 +34,22 @@ document.querySelectorAll('.tabs ul li').forEach(tab => {
         navbar.style.display = 'flex';
     }
 }
+function showPopup() {
+    const popup = document.getElementById('support-popup');
+    popup.style.display = 'block';
+}
+
+function closePopup() {
+    const popup = document.getElementById('support-popup');
+    popup.style.display = 'none';
+}
+
+function redirectToSupport() {
+    closePopup(); // Close the popup
+    window.location.href = 'index.html#support'; // Redirect to the support page with a hash
+}
+
+// Show the popup 10 seconds after the page loads
+window.onload = function() {
+    setTimeout(showPopup, 30000); // 10000 milliseconds = 10 seconds
+};
