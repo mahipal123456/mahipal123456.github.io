@@ -34,22 +34,24 @@ document.querySelectorAll('.tabs ul li').forEach(tab => {
         navbar.style.display = 'flex';
     }
 }
-function showPopup() {
-    const popup = document.getElementById('support-popup');
-    popup.style.display = 'block';
+document.addEventListener("DOMContentLoaded", function () {
+    setTimeout(showMainPopup, 30000); // Show main popup after 30 seconds
+});
+
+function showMainPopup() {
+    document.getElementById("supportPopup").style.display = "flex";
 }
 
 function closePopup() {
-    const popup = document.getElementById('support-popup');
-    popup.style.display = 'none';
+    document.getElementById("supportPopup").style.display = "none";
+    showMiniPopup(); // Show mini popup when main popup is closed
+}
+
+function showMiniPopup() {
+    document.getElementById("miniSupportPopup").style.display = "flex";
 }
 
 function redirectToSupport() {
-    closePopup(); // Close the popup
-    window.location.href = 'index.html#support'; // Redirect to the support page with a hash
+    closePopup(); // Close the main popup
+    window.location.href = 'index.html#support'; // Redirect to support section
 }
-
-// Show the popup 10 seconds after the page loads
-window.onload = function() {
-    setTimeout(showPopup, 30000); // 10000 milliseconds = 10 seconds
-};

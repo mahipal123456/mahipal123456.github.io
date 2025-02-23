@@ -1483,51 +1483,70 @@ h1 {
   color: #006400;
 }
 
-.support-popup {
+/* Main Support Popup */
+#supportPopup {
   display: none;
   position: fixed;
-  top: 50%; /* Center vertically */
-  left: 50%; /* Center horizontally */
-  transform: translate(-50%, -50%); /* Adjust position to truly center */
-  background-color: rgba(255, 223, 0, 0.9); /* Bright yellow background */
-  color: #333; /* Dark text color */
-  padding: 20px;
-  text-align: center;
-  z-index: 1000;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
   width: 90%;
-  border: 2px solid #ff9800; /* Orange border */
-  border-radius: 10px; /* Rounded corners */
-  box-shadow: 0 0 15px rgba(0, 0, 0, 0.5); /* Shadow effect */
-}
-
-.popup-content {
-  position: relative;
-}
-
-.close-btn {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  background: none;
-  border: none;
-  color: #ff0000; /* Red color for the close button */
-  font-size: 20px;
-  cursor: pointer;
-}
-
-.learn-more-btn {
-  background-color: #4CAF50; /* Green background */
-  color: white; /* White text */
-  padding: 10px 20px;
-  border: none;
-  border-radius: 5px; /* Rounded corners for button */
+  max-width: 500px;
+  background: #ffeb3b;
+  color: #000;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  text-align: center;
+  z-index: 9999;
+  flex-direction: column;
+  align-items: center;
   font-size: 16px;
-  cursor: pointer;
 }
 
-.learn-more-btn:hover {
-  background-color: #45a049; /* Darker green on hover */
+#supportPopup button {
+  background: #ff5722;
+  color: white;
+  border: none;
+  padding: 10px 15px;
+  cursor: pointer;
+  border-radius: 5px;
+  margin-top: 10px;
 }
+
+#supportPopup .close-btn {
+  background: #000;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  cursor: pointer;
+  border-radius: 5px;
+  position: absolute;
+  top: 5px;
+  right: 10px;
+}
+
+/* Mini Popup */
+#miniSupportPopup {
+  display: none;
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: #ff5722;
+  color: white;
+  padding: 10px 15px;
+  border-radius: 10px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  font-size: 14px;
+  z-index: 9999;
+  cursor: pointer;
+  transition: all 0.3s ease-in-out;
+}
+
+#miniSupportPopup:hover {
+  background: #e64a19;
+}
+
 .font-label {
   display: flex;
       flex-direction: row;

@@ -641,17 +641,11 @@
   
 <div id="support" class="support-us">
   <h2>Support Us</h2>
-  <p>This site provides many premium features at no cost. We rely on your generous support to maintain and improve this site. Your contribution helps us continue offering these services. Please consider supporting us today!</p>
-  <p>Currently, our site is hosted on a free server with a bandwidth limit. If we reach the monthly bandwidth cap, the site may be temporarily closed until the next cycle. We are committed to providing the best experience for you, but to keep the site running smoothly and ensure access for all users, we need your support.
-
-    Your help is essential in keeping the site online and helping us shift to a more reliable server that can handle higher traffic. By supporting us, you enable us to upgrade our infrastructure as soon as possible.</p>
-
-  <p>To further enhance your experience, we need your support for:</p>
-  <ul>
-    <li>Adding new premium fonts for better design options</li>
-    <li>Purchasing a dedicated domain for a more professional and seamless user experience</li>
-    <li>Maintaining and improving the site’s functionality</li>
-  </ul>
+  <p>We provide premium features completely free, while many other sites charge for them. Our goal is to provide these features for free so that everyone can benefit without any restrictions.</p>
+  
+  <p>If you find our features useful and want to continue enjoying them for free, we kindly ask for your support. Even a small contribution helps us maintain and improve the website, ensuring a better experience for you and all users.</p>
+  
+  <p>Your support makes a big difference in keeping these premium features free for everyone. If you’d like to help, we would truly appreciate it!</p>
   
   <div class="bmc-button-container">
     <script type="text/javascript" src="https://cdnjs.buymeacoffee.com/1.0.0/button.prod.min.js" data-name="bmc-button" data-slug="Mahipal" data-color="#FFDD00" data-emoji="📖" data-font="Cookie" data-text="Buy me a book" data-outline-color="#000000" data-font-color="#000000" data-coffee-color="#ffffff"></script>
@@ -667,17 +661,20 @@
 </div>
 
 
-<div id="support-popup" class="support-popup">
-  <div class="popup-content">
-      <button class="close-btn" onclick="closePopup()">✖</button>
-      <h2>🌟 Support Us 🌟</h2>
-      <p>If you love this site and appreciate our free premium features, we invite you to show your support! 💖</p>
-      <p>Your contributions help us maintain and improve the site, allowing us to provide you with the best experience possible. 🙏</p>
-      <p>Whether it’s ₹1, ₹10, or ₹100, every little bit matters and keeps us running smoothly! ❤️</p>
-      <p>👉 Click below to learn more about how you can support us and make a difference!</p>
-      <button class="learn-more-btn" onclick="redirectToSupport()">Learn More ➡️</button>
-  </div>
+<div id="supportPopup">
+  <button class="close-btn" onclick="closePopup()">✖</button>
+  <h2>🚀 Love This Site? Support Us! 💖</h2>
+  <p>We provide premium features for free! Your support helps us grow and keep this service running.</p>
+  <button onclick="redirectToSupport()">Support Now ❤️</button>
 </div>
+
+<!-- Mini Popup (Bottom Right) -->
+<div id="miniSupportPopup" onclick="redirectToSupport()">
+  ❤️ Enjoying this site? Click to support us!
+</div>
+
+<!-- Include JS & CSS -->
+<link rel="stylesheet" href="popup.css">
       
   <div class="button-container">       
       <button id="generate_pdf" class="buttontype_2" onclick="generatePDF()">Generate PDF</button>
