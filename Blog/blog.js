@@ -53,5 +53,5 @@ function showMiniPopup() {
 
 function redirectToSupport() {
     closePopup(); // Close the main popup
-    window.location.href = 'index.html#support'; // Redirect to support section
+    window.location.href = '../#support'; // Redirect to support section
 }
