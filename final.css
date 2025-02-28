@@ -1654,47 +1654,85 @@ details[open] .info-box {
   margin-bottom: 30px;
   font-weight: 400;
 }
-/* Cookie Banner Styling */
-    #cookie-banner {
-        position: fixed;
-        bottom: 20px;
-        left: 50%;
-        transform: translateX(-50%);
-        width: 90%;
-        max-width: 500px;
-        background: #007bff;
-        color: #fff;
-        padding: 15px;
-        border-radius: 10px;
-        box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
-        display: none;
-        text-align: center;
-        font-family: Arial, sans-serif;
-        z-index: 1000;
-    }
-    
-    /* Button Styling */
-    .cookie-btn {
-        background: #4CAF50;
-        color: white;
-        border: none;
-        padding: 8px 15px;
-        margin: 10px;
-        font-size: 14px;
-        border-radius: 5px;
-        cursor: pointer;
-        transition: 0.3s ease-in-out;
-    }
 
-    .cookie-btn:hover {
-        background: #45a049;
-    }
 
-    .reject-btn {
-        background: #f44336;
-    }
 
-    .reject-btn:hover {
-        background: #d32f2f;
-    }
+#cookie-banner {
+  position: fixed;
+  bottom: 70px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #333;
+  color: #fff;
+  padding: 8px 15px;
+  font-size: 14px;
+  border-radius: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+  max-width: 90%;
+  
+}
 
+#cookie-banner p {
+  margin: 0;
+  flex: 1;
+}
+
+#cookie-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+/* Buttons */
+.cookie-btn {
+  background: #007bff;
+  color: #fff;
+  border: none;
+  padding: 6px 12px;
+  font-size: 12px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.deny-btn {
+  background: #777;
+}
+
+/* 💡 Mobile-Friendly Adjustments */
+@media (max-width: 480px) {
+  #cookie-banner {
+      flex-direction: column;
+      text-align: center;
+      gap: 10px;
+      padding: 10px;
+  }
+
+  #cookie-buttons {
+      width: 100%;
+      justify-content: center;
+  }
+
+  .cookie-btn {
+      width: 45%;
+  }
+}
+
+/* Hover Effect */
+.cookie-btn:hover {
+  background: #0056b3;
+  transform: scale(1.05);
+}
+
+.deny-btn {
+  background: #777;
+}
+
+/* Hover Effect for Deny Button */
+.deny-btn:hover {
+  background: #555;
+  transform: scale(1.05);
+}

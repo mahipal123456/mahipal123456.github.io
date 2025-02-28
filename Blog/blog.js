@@ -55,3 +55,39 @@ function redirectToSupport() {
     closePopup(); // Close the main popup
     window.location.href = '../#support'; // Redirect to support section
 }
+// STEP 1: Check if the user has already given consent
+window.onload = function () {
+    let consent = localStorage.getItem("cookie_consent");
+
+    if (consent === "granted" || consent === "denied") {
+        document.getElementById("cookie-banner").style.display = "none";
+    }
+};
+
+// STEP 2: Function to accept cookies and update consent mode
+function acceptCookies() {
+    localStorage.setItem("cookie_consent", "granted");
+
+    gtag('consent', 'update', {
+        'ad_storage': 'granted',
+        'analytics_storage': 'granted',
+        'ad_user_data': 'granted',
+        'ad_personalization': 'granted'
+    });
+
+    document.getElementById("cookie-banner").style.display = "none";
+}
+
+// STEP 3: Function to deny cookies (keeps default "denied" state)
+function denyCookies() {
+    localStorage.setItem("cookie_consent", "denied");
+
+    gtag('consent', 'update', {
+        'ad_storage': 'denied',
+        'analytics_storage': 'denied',
+        'ad_user_data': 'denied',
+        'ad_personalization': 'denied'
+    });
+
+    document.getElementById("cookie-banner").style.display = "none";
+}

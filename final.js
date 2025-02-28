@@ -1539,50 +1539,39 @@ function redirectToSupport() {
     closePopup(); // Close the main popup
     window.location.href = '#support'; // Redirect to support section
 }
+// STEP 1: Check if the user has already given consent
+window.onload = function () {
+    let consent = localStorage.getItem("cookie_consent");
 
-document.addEventListener("DOMContentLoaded", function () {
-    let cookieBanner = document.getElementById("cookie-banner");
-    let acceptCookies = document.getElementById("accept-cookies");
-    let rejectCookies = document.getElementById("reject-cookies");
-
-    function getCookie(name) {
-        let match = document.cookie.match(new RegExp("(^| )" + name + "=([^;]+)"));
-        return match ? match[2] : null;
+    if (consent === "granted" || consent === "denied") {
+        document.getElementById("cookie-banner").style.display = "none";
     }
+};
 
-    function setCookie(name, value, days) {
-        let expires = "";
-        if (days) {
-            let date = new Date();
-            date.setTime(date.getTime() + days * 24 * 60 * 60 * 1000);
-            expires = "; expires=" + date.toUTCString();
-        }
-        document.cookie = name + "=" + value + expires + "; path=/; Secure; SameSite=Lax";
-    }
+// STEP 2: Function to accept cookies and update consent mode
+function acceptCookies() {
+    localStorage.setItem("cookie_consent", "granted");
 
-    if (!getCookie("userConsent")) {
-        cookieBanner.style.display = "block";
-    }
-
-    acceptCookies.addEventListener("click", function () {
-        setCookie("userConsent", "accepted", 365);
-        gtag('consent', 'update', {
-            'ad_storage': 'granted',
-            'analytics_storage': 'granted',
-            'ad_user_data': 'granted',
-            'ad_personalization': 'granted'
-        });
-        cookieBanner.style.display = "none";
+    gtag('consent', 'update', {
+        'ad_storage': 'granted',
+        'analytics_storage': 'granted',
+        'ad_user_data': 'granted',
+        'ad_personalization': 'granted'
     });
 
-    rejectCookies.addEventListener("click", function () {
-        setCookie("userConsent", "denied", 365);
-        gtag('consent', 'update', {
-            'ad_storage': 'denied',
-            'analytics_storage': 'denied',
-            'ad_user_data': 'denied',
-            'ad_personalization': 'denied'
-        });
-        cookieBanner.style.display = "none";
+    document.getElementById("cookie-banner").style.display = "none";
+}
+
+// STEP 3: Function to deny cookies (keeps default "denied" state)
+function denyCookies() {
+    localStorage.setItem("cookie_consent", "denied");
+
+    gtag('consent', 'update', {
+        'ad_storage': 'denied',
+        'analytics_storage': 'denied',
+        'ad_user_data': 'denied',
+        'ad_personalization': 'denied'
     });
-});
+
+    document.getElementById("cookie-banner").style.display = "none";
+}
