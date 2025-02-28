@@ -1654,5 +1654,47 @@ details[open] .info-box {
   margin-bottom: 30px;
   font-weight: 400;
 }
+/* Cookie Banner Styling */
+    #cookie-banner {
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 90%;
+        max-width: 500px;
+        background: #007bff;
+        color: #fff;
+        padding: 15px;
+        border-radius: 10px;
+        box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+        display: none;
+        text-align: center;
+        font-family: Arial, sans-serif;
+        z-index: 1000;
+    }
+    
+    /* Button Styling */
+    .cookie-btn {
+        background: #4CAF50;
+        color: white;
+        border: none;
+        padding: 8px 15px;
+        margin: 10px;
+        font-size: 14px;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: 0.3s ease-in-out;
+    }
 
+    .cookie-btn:hover {
+        background: #45a049;
+    }
+
+    .reject-btn {
+        background: #f44336;
+    }
+
+    .reject-btn:hover {
+        background: #d32f2f;
+    }
 
