@@ -1659,7 +1659,7 @@ details[open] .info-box {
 
 #cookie-banner {
   position: fixed;
-  bottom: 70px;
+  bottom: 100px;
   left: 50%;
   transform: translateX(-50%);
   background: #333;
@@ -1667,10 +1667,11 @@ details[open] .info-box {
   padding: 8px 15px;
   font-size: 14px;
   border-radius: 5px;
-  display: flex;
+  display: none;
   align-items: center;
   justify-content: space-between;
   gap: 15px;
+  font-size: smaller;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
   max-width: 90%;
   width: 90%;
@@ -1735,4 +1736,15 @@ details[open] .info-box {
 .deny-btn:hover {
   background: #555;
   transform: scale(1.05);
+}
+#manage-cookies {
+  position: fixed;
+  bottom: 60px;
+  right: 20px;
+  padding: 8px 12px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
 }

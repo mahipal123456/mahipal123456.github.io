@@ -55,12 +55,25 @@ function redirectToSupport() {
     closePopup(); // Close the main popup
     window.location.href = '../#support'; // Redirect to support section
 }
-// STEP 1: Check if the user has already given consent
+// STEP 1: Show cookie banner after 5 seconds if no consent is given
 window.onload = function () {
     let consent = localStorage.getItem("cookie_consent");
 
-    if (consent === "granted" || consent === "denied") {
+    if (consent === "granted") {
+        loadClarity(); // Load Clarity if already accepted
+        enableGA4();   // Ensure GA4 is loaded
         document.getElementById("cookie-banner").style.display = "none";
+    } else if (consent === "denied") {
+        document.getElementById("cookie-banner").style.display = "none";
+    } else {
+        setTimeout(function () {
+            document.getElementById("cookie-banner").style.display = "flex";
+        }, 5000); // Show after 5 seconds
+    }
+
+    // Show "Manage Cookies" button if consent was already given
+    if (consent) {
+        document.getElementById("manage-cookies").style.display = "block";
     }
 };
 
@@ -68,26 +81,61 @@ window.onload = function () {
 function acceptCookies() {
     localStorage.setItem("cookie_consent", "granted");
 
-    gtag('consent', 'update', {
-        'ad_storage': 'granted',
-        'analytics_storage': 'granted',
-        'ad_user_data': 'granted',
-        'ad_personalization': 'granted'
-    });
+    // Enable Google Consent Mode & Load GA4
+    enableGA4();
+
+    // Load Microsoft Clarity
+    loadClarity();
 
     document.getElementById("cookie-banner").style.display = "none";
+    document.getElementById("manage-cookies").style.display = "block"; // Show manage button
 }
 
 // STEP 3: Function to deny cookies (keeps default "denied" state)
 function denyCookies() {
     localStorage.setItem("cookie_consent", "denied");
 
-    gtag('consent', 'update', {
-        'ad_storage': 'denied',
-        'analytics_storage': 'denied',
-        'ad_user_data': 'denied',
-        'ad_personalization': 'denied'
-    });
+    // Disable Google Consent Mode
+    if (typeof gtag === "function") {
+        gtag('consent', 'update', {
+            'ad_storage': 'denied',
+            'analytics_storage': 'denied',
+            'ad_user_data': 'denied',
+            'ad_personalization': 'denied'
+        });
+    }
 
     document.getElementById("cookie-banner").style.display = "none";
+    document.getElementById("manage-cookies").style.display = "block"; // Show manage button
+}
+
+// STEP 4: Function to load Microsoft Clarity (only if not loaded)
+function loadClarity() {
+    if (!window.clarity) { // Prevent multiple loads
+        (function(c,l,a,r,i,t,y){
+            c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+            t=l.createElement(r); t.async=1; t.src="https://www.clarity.ms/tag/"+i;
+            y=l.getElementsByTagName(r)[0]; y.parentNode.insertBefore(t,y);
+        })(window, document, "clarity", "script", "ork3584d36");
+    }
+}
+
+// STEP 5: Function to open cookie banner for consent management
+function manageCookies() {
+    document.getElementById("cookie-banner").style.display = "flex";
+}
+
+// STEP 6: Function to enable Google Analytics 4 (GA4)
+function enableGA4() {
+    if (typeof gtag === "function") {
+        gtag('consent', 'update', {
+            'ad_storage': 'granted',
+            'analytics_storage': 'granted',
+            'ad_user_data': 'granted',
+            'ad_personalization': 'granted'
+        });
+        console.log("GA4 Consent Granted and Initialized");
+    } else {
+        console.warn("GA4 (gtag) not initialized yet. Make sure your GA4 script is added.");
+    }
 }
