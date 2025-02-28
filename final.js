@@ -1545,6 +1545,7 @@ window.onload = function () {
 
     if (consent === "granted") {
         enableGA4(); // Load GA4 if already accepted
+        loadClarity();
         document.getElementById("cookie-banner").style.display = "none";
     } else if (consent === "denied") {
         document.getElementById("cookie-banner").style.display = "none";
@@ -1572,6 +1573,7 @@ function acceptCookies() {
     });
 
     gtag('config', 'G-9N9V3HXNYT'); // Now track page views
+    loadClarity();
 
     document.getElementById("cookie-banner").style.display = "none";
     document.getElementById("manage-cookies").style.display = "block"; // Show manage button
@@ -1598,7 +1600,15 @@ function denyCookies() {
 function manageCookies() {
     document.getElementById("cookie-banner").style.display = "flex";
 }
-
+function loadClarity() {
+    if (!window.clarity) { // Prevent multiple loads
+        (function(c,l,a,r,i,t,y){
+            c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+            t=l.createElement(r); t.async=1; t.src="https://www.clarity.ms/tag/"+i;
+            y=l.getElementsByTagName(r)[0]; y.parentNode.insertBefore(t,y);
+        })(window, document, "clarity", "script", "ork3584d36");
+    }
+}
 // Enable GA4 if user has already accepted cookies
 function enableGA4() {
     gtag('consent', 'update', {
