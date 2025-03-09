@@ -29,7 +29,7 @@ body {
 }
 
 .logo {
-    font-size: 1.5em;
+    /* font-size: 1.5em; */
     font-weight: bold;
     margin: 0;
 }
@@ -45,7 +45,7 @@ body {
 }
 .menu-icon {
 display: none; /* Hidden by default */
-font-size: 1.8em;
+/* font-size: 1.8em; */
 cursor: pointer;
 }
 
@@ -68,7 +68,12 @@ margin: 10px 0;
 
 .menu-icon {
 display: block; /* Show the menu icon */
+padding-right: 10px;
 }
+body{
+  font-size: smaller;
+}
+
 }
 
 /* weblink Section */
@@ -84,7 +89,7 @@ display: block; /* Show the menu icon */
     padding: 10px 20px;
     border: none;
     cursor: pointer;
-    font-size: 1em;
+    /* font-size: 1em; */
     border-radius: 5px;
 }
 .cta-button:hover {
@@ -126,7 +131,7 @@ display: block; /* Show the menu icon */
     color: #ffffff;
     margin: 0 10px;
     text-decoration: none;
-    font-size: 16px;
+    /* font-size: 16px; */
 }
 
 .footer-link:hover {
@@ -134,7 +139,7 @@ display: block; /* Show the menu icon */
 }
 
 .footer-credit {
-    font-size: 14px;
+    /* font-size: 14px; */
     margin-top: 10px;
     color: #ffffff;
 }
@@ -175,7 +180,7 @@ margin: 20px;
 
 .page-content h3 {
 color: #007bff; /* Blue color for the heading */
-font-size: 2rem;
+/* font-size: 2rem; */
 margin-bottom: 20px;
 }
 
@@ -185,7 +190,7 @@ margin: 0 auto;
 }
 
 .page-content .page-description p {
-font-size: 1rem;
+/* font-size: 1rem; */
 color: #555;
 line-height: 1.6;
 margin-bottom: 20px;
@@ -197,7 +202,7 @@ color: white;
 border: none;
 border-radius: 25px;
 padding: 12px 20px;
-font-size: 1rem;
+/* font-size: 1rem; */
 cursor: pointer;
 transition: background 0.3s ease;
 }
@@ -220,7 +225,7 @@ font-family: 'Arial', sans-serif;
 }
 
 #why-us h3 {
-font-size: 1.5rem;
+/* font-size: 1.5rem; */
 color: #333;
 margin-bottom: 15px;
 text-align: center;
@@ -235,7 +240,7 @@ padding: 0;
 }
 
 #why-us ul li {
-font-size: 1.1rem;
+/* font-size: 1.1rem; */
 color: #555;
 padding-left: 20px;
 position: relative;
@@ -259,14 +264,14 @@ padding: 30px;
 }
 
 #text-input-formatting h2 {
-font-size: 2rem;
+/* font-size: 2rem; */
 color: #333;
 margin-bottom: 15px;
 text-align: center;
 }
 
 #text-input-formatting p {
-font-size: 1.1rem;
+/* font-size: 1.1rem; */
 color: #555;
 margin-bottom: 20px;
 }
@@ -293,7 +298,7 @@ border-radius: 5px;
 font-weight: bold;
 display: flex;
 align-items: center;
-font-size: small;
+/* font-size: small; */
 }
 
 .tabs ul li.active {
@@ -317,7 +322,7 @@ display: block;
 }
 
 .tab-pane p {
-font-size: 1rem;
+/* font-size: 1rem; */
 color: #555;
 line-height: 1.6;
 }
@@ -332,7 +337,7 @@ box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 } */
 
 .drawings-header h3 {
-font-size: 2rem;
+/* font-size: 2rem; */
 color: #333;
 text-align: center;
 margin-bottom: 10px;
@@ -340,7 +345,7 @@ font-weight: bold;
 }
 
 .drawings-header p {
-font-size: 1.1rem;
+/* font-size: 1.1rem; */
 color: #555;
 text-align: center;
 margin-bottom: 30px;
@@ -372,7 +377,7 @@ box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
 display: inline-block;
 background-color: #4CAF50;
 color: white;
-font-size: 1.2rem;
+/* font-size: 1.2rem; */
 font-weight: bold;
 width: 40px;
 height: 40px;
@@ -382,14 +387,14 @@ margin-bottom: 15px;
 }
 
 .step-box h4 {
-font-size: 1.2rem;
+/* font-size: 1.2rem; */
 color: #333;
 margin-bottom: 10px;
 font-weight: bold;
 }
 
 .step-box p {
-font-size: 1rem;
+/* font-size: 1rem; */
 color: #555;
 line-height: 1.5;
 }
@@ -409,7 +414,7 @@ font-family: Arial, sans-serif;
 
 /* Section Title */
 .faq-section h3 {
-font-size: 24px;
+/* font-size: 24px; */
 color: #333;
 text-align: center;
 margin-bottom: 20px;
@@ -422,7 +427,7 @@ margin-bottom: 15px;
 
 /* FAQ Question Styling */
 .faq-item h4 {
-font-size: 18px;
+/* font-size: 18px; */
 color: #0056b3;
 margin-bottom: 8px;
 cursor: pointer;
@@ -435,7 +440,7 @@ color: #004494;
 
 /* FAQ Answer Styling */
 .faq-item p {
-font-size: 16px;
+/* font-size: 16px; */
 color: #555;
 line-height: 1.6;
 margin: 0;
@@ -581,6 +586,10 @@ display: block; /* Show answer when active */
     .cookie-btn {
         width: 45%;
     }
+    body{
+      font-size: x-small;
+    }
+
   }
   
   /* Hover Effect */
