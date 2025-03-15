@@ -81,12 +81,33 @@ function enableGA4() {
 }
 
 
+
+function setLeftMarginHeight() {
+    const leftmarginin = document.getElementById("left-margin-in");
+    const outputContainer = document.getElementById("output-container");
+    const leftMargin = document.getElementById("left-margin");
+
+    // Get the height of the output container (including the overflow content)
+    const outputHeight = outputContainer.scrollHeight;
+
+    // Set the height of the left margin container to match the output container height
+    leftMargin.style.height = outputHeight + "px";
+    // leftmarginin.style.height = outputHeight + "px";
+}
+// Observer for output-container
+const outputResizeObserver = new ResizeObserver(() => {
+    setLeftMarginHeight(); // Only updates left margin when output-container resizes
+});
+outputResizeObserver.observe(document.getElementById('output-container'));
+
+window.addEventListener('resize',  setLeftMarginHeight);
+
 const quill = new Quill('#mixed-input', {
     modules: {
       syntax: true, // Enable syntax highlighting
       toolbar: '#toolbar-container', // Attach toolbar to the editor
     },
-    placeholder: 'Compose an epic...', // Placeholder text
+    placeholder: 'Before start writing here , learn how to use this tool for the best experience ,from our How to Use guide!because Many users struggle to use this properly. and also For the best experience, we recommend using Google Chrome, as some features may not work in other browsers due to their difrente settings. If you notice any issues, please try switching to Chrome for optimal performance', // Placeholder text
     theme: 'snow', // Snow theme for Quill
   });
   quill.on('text-change', function () {
@@ -106,8 +127,10 @@ function toggleNav() {
   
 
         let imagesArray = [];
+        let isDrawingBeingAdded = false;
 
         function convertToHTML() {
+            if (isDrawingBeingAdded) return;
             const mixedInput = document.querySelector('.ql-editor').innerHTML; 
             const outputContainer = document.getElementById('output-inner-container');
             
@@ -158,6 +181,7 @@ function toggleNav() {
             }
             
             outputContainer.innerHTML = outputHtml;
+            // setLeftMarginHeight()
         }
         
         
@@ -180,26 +204,27 @@ function toggleNav() {
         document.addEventListener('input', function(event) {
             var target = event.target;
             if (target.matches('#font-size-input')) {
-                changeCSSProperty('fontSize', target.value + 'px', ['output-inner-container','left-margin']);
+                changeCSSProperty('fontSize', target.value + 'px', ['output-inner-container','left-margin-in']);
                 
             } else if (target.matches('#font-color-input')) {
-                changeCSSProperty('color', target.value, ['output-inner-container','left-margin','top-margin']);
+                changeCSSProperty('color', target.value, ['output-inner-container','left-margin-in','top-margin']);
             } else if (target.matches('#letter-spacing-input')) {
-                changeCSSProperty('letterSpacing', target.value + 'px', ['output-inner-container','left-margin','top-margin']);
+                changeCSSProperty('letterSpacing', target.value + 'px', ['output-inner-container','left-margin-in','top-margin']);
             } else if (target.matches('#word-spacing-input')) {
-                changeCSSProperty('wordSpacing', target.value + 'px', ['output-inner-container','left-margin','top-margin']);
+                changeCSSProperty('wordSpacing', target.value + 'px', ['output-inner-container','left-margin-in','top-margin']);
             } else if (target.matches('#background-color-input')) {
                 changeCSSProperty('backgroundColor', target.value, ['shadow-effect']);
             } else if (target.matches('#margin-top-input')) {
-                changeCSSProperty('marginTop', target.value + 'px', ['output-inner-container','left-margin']);
+                changeCSSProperty('marginTop', target.value + 'px', ['output-inner-container','left-margin-in']);
             } else if (target.matches('#margin-left-input')) {
                 changeCSSProperty('marginLeft', target.value + 'px', ['output-inner-container']);
             } else if (target.matches('#quality-input')) {
                 quality = parseFloat(target.value) || 1.0;
             } else if (target.matches('#line-spacing-text-input')) {
-                changeCSSProperty('lineHeight', target.value + 'px', ['output-inner-container','left-margin']);
+                changeCSSProperty('lineHeight', target.value + 'px', ['output-inner-container','left-margin-in']);
             } else if (target.matches('#line-spacing-input')) {
-                document.getElementById('content_page').style.backgroundSize = `100% ${target.value}px`;
+                document.getElementById('left-margin').style.backgroundSize = `100% ${target.value}px`;
+                document.getElementById('output-container').style.backgroundSize = `100% ${target.value}px`;
             }else if (target.matches('#height-input')) {
                 changeCSSProperty('height', target.value + '%', ['box']);
             }else if (target.matches('#width-input')) {
@@ -285,12 +310,19 @@ let isTopBorderOn = true;
 
 
         // Toggle background image
-        function toggleBackground() {
-            var content_page = document.getElementById('content_page');
-            var bgToggle = document.getElementById('bg-toggle');
+function toggleBackground() {
+    var elements = document.querySelectorAll('#left-margin, #output-container');
+    var bgToggle = document.getElementById('bg-toggle');
 
-            content_page.style.backgroundImage = bgToggle.checked ? 'linear-gradient(#00000066  0.05em, transparent 0.1em)' : 'none';
-        }
+    // Determine the background style based on the checkbox state
+    var backgroundStyle = bgToggle.checked ? 'linear-gradient(#00000066 0.05em, transparent 0.1em)' : 'none';
+
+    // Loop through each selected element and apply the background image
+    elements.forEach(function(element) {
+        element.style.backgroundImage = backgroundStyle;
+    });
+}
+
         function Shadow() {
             var heading_page = document.getElementById('heading_page');
             var effect = document.getElementById('shadow');
@@ -450,42 +482,43 @@ function changeFontFamily() {
 document.addEventListener('DOMContentLoaded', changeFontFamily());
 
 
-//to cntrol screeshot scroll problem 
-const container = document.getElementById('content_page');
-const lineSpacingInput = document.getElementById('line-spacing-input');
+// //to cntrol screeshot scroll problem 
+// const container = document.getElementById('content_page');
+// const lineSpacingInput = document.getElementById('line-spacing-input');
+// let isButtonScroll = false; // Flag to track button-based scroll
 
-// Function to get the scroll step value
-function getScrollStep() {
-    const value = parseInt(lineSpacingInput.value, 10);
+// // Function to get the scroll step value
+// function getScrollStep() {
+//     const value = parseInt(lineSpacingInput.value, 10);
     
-    // Use 20 as the default if the screen width is less than 900px, otherwise use 23
-    const defaultStep = window.innerWidth < 900 ? 20 : 23;
+//     // Use 20 as the default if the screen width is less than 900px, otherwise use 23
+//     const defaultStep = window.innerWidth < 900 ? 20 : 23;
     
-    return isNaN(value) ? defaultStep : value;
-}
+//     return isNaN(value) ? defaultStep : value;
+// }
 
-// Add a scroll event listener
-container.addEventListener('scroll', () => {
-  const step = getScrollStep(); // Get the current scroll step
-  const scrollTop = container.scrollTop;
+// // Add a scroll event listener
+// container.addEventListener('scroll', () => {
+//     if (!isButtonScroll){
+//   const step = getScrollStep(); // Get the current scroll step
+//   const scrollTop = container.scrollTop;
 
-  // Calculate the nearest step
-  const nearestStep = Math.round(scrollTop / step) * step;
+//   // Calculate the nearest step
+//   const nearestStep = Math.round(scrollTop / step) * step;
 
-  // Set the container's scrollTop to the nearest step
-  if (scrollTop !== nearestStep) {
-    container.scrollTo({
-      top: nearestStep,
-    });
-  }
-});
-
-
+//   // Set the container's scrollTop to the nearest step
+//   if (scrollTop !== nearestStep) {
+//     container.scrollTo({
+//       top: nearestStep,
+//     });
+//   }
+// }
+// });
 
 
 
         var imageQueue = []; // Array to store generated images
-        var quality = 5.0; // Initial quality value
+        var quality = 2.0; // Initial quality value
 
         // Global variable to track if the alert has been shown
 let highQualityAlertShown = false;
@@ -653,7 +686,7 @@ function generateAndPreview() {
         // containerWrapper.style.border = 'none';
         var imageQueueContainer = document.getElementById('images-store-container');
 
-        html2canvas(containerWrapper, { scale: quality }).then(function (canvas) {
+        html2canvas(containerWrapper, { scale: quality ,useCORS: true, willReadFrequently: true}).then(function (canvas) {
             // Create a new image object
             var newImage = new Image();
             newImage.src = canvas.toDataURL();
@@ -745,7 +778,7 @@ function generateAndPreview() {
                     var imageQueueContainer = document.getElementById('images-store-container');
                     var textElement = document.createElement('p');
                     textElement.id = 'images-store-container-text';
-                    textElement.textContent = 'Click "Generate Image" Button to generate new image';
+                    textElement.textContent = 'Click "Generate Image" Button to generate new image.it may take some time because images are in high quality.';
                     imageQueueContainer.appendChild(textElement);
                 }
             }
@@ -1044,12 +1077,13 @@ function adjustCanvasToContainer() {
     canvasHeightSlider.value = (canvas.height / containerHeight) * 100;
 }
 
-// Observe container resizing
-const shadowEffect = document.getElementById('shadow-effect');
-const resizeObserver = new ResizeObserver(() => {
-    adjustCanvasToContainer();
+// Observer for shadow-effect
+const shadowResizeObserver = new ResizeObserver(() => {
+    adjustCanvasToContainer(); // Only updates canvas when shadow-effect resizes
 });
-resizeObserver.observe(shadowEffect);
+shadowResizeObserver.observe(document.getElementById('shadow-effect'));
+
+
 
 // Initial adjustment
 adjustCanvasToContainer();
@@ -1176,6 +1210,7 @@ function drawShape(x, y) {
 }
 
 function addDrawingToOutput() {
+    isDrawingBeingAdded = true;
     const imgData = canvas.toDataURL();
     const img = new Image();
     const imageCount = imagesArray.length + 1;
@@ -1193,6 +1228,9 @@ function addDrawingToOutput() {
         }
         
     };
+    setTimeout(() => {
+        isDrawingBeingAdded = false; // Reset flag after adding drawing
+    }, 50);
 }
 
 // function setProperties() {
@@ -1623,3 +1661,6 @@ function redirectToSupport() {
     window.location.href = '#support'; // Redirect to support section
 }
 
+
+
+//
