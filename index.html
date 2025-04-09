@@ -159,6 +159,7 @@
   </div>
 </section>
 
+
     <!-- Features Section -->
     <section id="features">
       <h2>Key Features</h2>
@@ -643,6 +644,17 @@
       <button id="generate_image" class="buttontype_2" onclick="generateAndPreview()">Generate Image</button>
       <!-- <button class="buttontype_2" onclick="openDrawingContainer()">Draw</button> -->
   </div>
+  <section class="feature-section">
+    <h2>Don't Know How To Use?</h2>
+    <div class="feature-content">
+      <p>
+        "Check out our detailed guide on how to use this ."
+      </p>
+      <button onclick="window.location.href='/Blog'">
+        Get Started
+      </button>
+    </div>
+  </section>
   
   <div id="images-store-container">
       <!-- The queue container where images and download buttons will be added -->
@@ -673,10 +685,16 @@
 
 
 <div id="supportPopup">
-  <button class="close-btn" onclick="closePopup()">✖</button>
+  <button class="close-btn" style="display: none;" onclick="closePopup()">✖</button>
   <h2>🚀 Love This Site? Support Us! 💖</h2>
-  <p>We provide premium features for free! Your support helps us grow and keep this service running.</p>
+  <p>
+    We give you premium features for free.
+Improving this site based on your feedback takes a lot of time and effort.
+Your support helps us keep working and making things better for you.
+Support now to make sure it stays free and amazing—for you and everyone else.
+  </p>
   <button onclick="redirectToSupport()">Support Now ❤️</button>
+  <div id="progressBar"></div>
 </div>
 
 <!-- Mini Popup (Bottom Right) -->
@@ -742,24 +760,6 @@
       </div>
   </div>
   
-  
-
-  <section class="feature-section">
-    <h2>Need Help?</h2>
-    <div class="feature-content">
-      <p>
-        "Check out our detailed guide on how to use this ."
-      </p>
-      <button onclick="window.location.href='/Blog'">
-        Get Started
-      </button>
-    </div>
-  </section>
-
- 
-
-    
-
     <!-- How It Works Section -->
     <section id="how-it-works">
       <h2>How It Works</h2>

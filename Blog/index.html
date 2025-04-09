@@ -520,11 +520,18 @@
 
 </main>
 <div id="supportPopup">
-    <button class="close-btn" onclick="closePopup()">✖</button>
+    <button class="close-btn" style="display: none;" onclick="closePopup()">✖</button>
     <h2>🚀 Love This Site? Support Us! 💖</h2>
-    <p>We provide premium features for free! Your support helps us grow and keep this service running.</p>
+    <p>
+      We give you premium features for free.
+  Improving this site based on your feedback takes a lot of time and effort.
+  Your support helps us keep working and making things better for you.
+  Support now to make sure it stays free and amazing—for you and everyone else.
+    </p>
     <button onclick="redirectToSupport()">Support Now ❤️</button>
+    <div id="progressBar"></div>
   </div>
+  
   
   <!-- Mini Popup (Bottom Right) -->
   <div id="miniSupportPopup" onclick="redirectToSupport()">

@@ -1640,7 +1640,12 @@ function drawImages() {
 //   });
   
 document.addEventListener("DOMContentLoaded", function () {
-    setTimeout(showMainPopup, 30000); // Show main popup after 30 seconds
+    const closeBtn = document.querySelector('.close-btn');
+    setTimeout(showMainPopup, 60000); // Show main popup after 30 seconds
+    setTimeout(() => {
+        closeBtn.style.display = 'block';
+      }, 70000);
+
 });
 
 function showMainPopup() {

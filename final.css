@@ -8,6 +8,7 @@ body {
     scroll-behavior: smooth;
     background-color: #ffffff;
     overflow-x: hidden;
+    line-height: 1.6;
   }
 
   /* Header */
@@ -165,7 +166,7 @@ body {
 /* General Feature Section */
 .feature-section {
   background: #eff6ff;
-  padding: 60px 20px;
+  /* padding: 60px 20px; */
   text-align: center;
   margin-top: 40px;
   border-radius: 10px;
@@ -1224,8 +1225,9 @@ font-size: 12px;
     margin: 1%;
     justify-content: safe center;
     border: 1px solid #000000;
-    background: #eff6ff;
+    background: #ffffff;
     padding: 2%;
+    text-align: center;
 }
 
 .image-container {
@@ -1543,7 +1545,6 @@ h1 {
   z-index: 9999;
   flex-direction: column;
   align-items: center;
-  font-size: 16px;
 }
 
 #supportPopup button {
@@ -1804,4 +1805,31 @@ details[open] .info-box {
   height: auto;
   width: 100%;
   word-wrap :  break-word;
+}
+
+#progressBar {
+  height: 5px;
+  width: 100%;
+  background: #eee;
+  margin-top: 10px;
+  border-radius: 5px;
+  overflow: hidden;
+  position: relative;
+}
+
+#progressBar::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0; /* Important: makes sure it starts from the left */
+  height: 100%;
+  width: 0%;
+  background: #ff69b4;
+  animation: fillProgress 10s linear forwards;
+}
+
+
+@keyframes fillProgress {
+  0% { width: 0%; }
+  100% { width: 100%; }
 }

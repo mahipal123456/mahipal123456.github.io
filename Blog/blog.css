@@ -477,7 +477,6 @@ display: block; /* Show answer when active */
     z-index: 9999;
     flex-direction: column;
     align-items: center;
-    font-size: 16px;
   }
   
   #supportPopup button {
@@ -617,4 +616,30 @@ display: block; /* Show answer when active */
     border: none;
     border-radius: 5px;
     cursor: pointer;
+  }
+  #progressBar {
+    height: 5px;
+    width: 100%;
+    background: #eee;
+    margin-top: 10px;
+    border-radius: 5px;
+    overflow: hidden;
+    position: relative;
+  }
+  
+  #progressBar::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0; /* Important: makes sure it starts from the left */
+    height: 100%;
+    width: 0%;
+    background: #ff69b4;
+    animation: fillProgress 10s linear forwards;
+  }
+  
+  
+  @keyframes fillProgress {
+    0% { width: 0%; }
+    100% { width: 100%; }
   }
