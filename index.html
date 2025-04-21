@@ -111,6 +111,8 @@
 <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
 
+<script src="https://cdn.jsdelivr.net/npm/interactjs/dist/interact.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
 </head>
   <body>
@@ -353,7 +355,7 @@
   <div id="container-wrapper">
     <div id="input-container1">
       <div id="mode-toggle">
-        <button id="toggle-mode-button" class="file-button" onclick="toggleMode()">Switch to Drawing</button>
+        <button id="toggle-mode-button" class="file-button" >Switch to Drawing</button>
     </div>
       <div id="input-container" class="input-boxes">
           <div class="input-box textarea-box">
@@ -401,61 +403,104 @@
               </div>
 
               <div class="input-row">
-              <!-- Editable Content Area -->
-              <div id="mixed-input"></div>
+                <div id="mixed-container">
+
+                  <!-- Editable Content Area -->
+                  <div id="mixed-input"></div>
+                </div>
 
             
             
               </div>
           </div>
           <div class="input-box" id="drawing-controls">
+            <div id="canvas-container">
+              <canvas id="drawing-canvas"  ></canvas>
+
+            </div>
+            <div id="canvas-tools">
             <div id="icons">
-            
-            <button id="color-picker-button" onclick="openColorPicker()">
-                <img src="icons/color.svg" alt="Color Picker">color
-            </button>
-            <input type="color" id="drawing-color" value="#000000" style="display: none;" onchange="changeDrawingColor(value)">
-            
-            
-            <button onclick="shape('pen')"><img src="icons\pen.svg" alt="pen">pen</button>
-            <button onclick="shape('eraser')"><img src="icons\eraser.svg" alt="eraser">eraser</button>
-            <button onclick="shape('line')"><img src="icons/line.svg" alt="line">line</button>
-            <button onclick="shape('circle')"><img src="icons\circle.svg" alt="circle">circle</button>
-            <button onclick="shape('rectangle')"><img src="icons\rectangle.svg" alt="rectangle">rectangle</button>
-            <button onclick="undo()"><img src="icons\undo.svg" alt="undo">undo</button>
-            <button onclick="redo()"><img src="icons\redo.svg" alt="redo">redo</button>
-            <button onclick="saveDrawing()"><img src="icons\save.svg" alt="save">save</button>
-            
-            <button onclick="openImageUploadPopup()"><img src="icons\upload.svg" alt="upload">upload</button>
-    
-            <button onclick="clearDrawing()"><img src="icons/reset.svg" alt="reset">Clear</button>
-            <button onclick="addDrawingToOutput()"><img src="icons\done.svg" alt="done">Add to paper</button>
-            <!-- <button onclick="closePopup()"><img src="icons\close.svg" alt="close">close</button> -->
+                <button id="color-picker-button">
+                    <img src="icons/color.svg" alt="Color Picker">color
+                </button>
+                <input type="color" id="drawing-color" value="#000000" style="display: none;">
+                
+                <button id="pen-button">
+                    <img src="icons/pen.svg" alt="pen">pen
+                </button>
+                <button id="eraser-button">
+                    <img src="icons/eraser.svg" alt="eraser">eraser
+                </button>
+                <button id="line-button">
+                    <img src="icons/line.svg" alt="line">line
+                </button>
+                <button id="circle-button">
+                    <img src="icons/circle.svg" alt="circle">circle
+                </button>
+                <button id="rectangle-button">
+                    <img src="icons/rectangle.svg" alt="rectangle">rectangle
+                </button>
+                <button id="undo-button">
+                    <img src="icons/undo.svg" alt="undo">undo
+                </button>
+                <button id="redo-button">
+                    <img src="icons/redo.svg" alt="redo">redo
+                </button>
+                <button id="save-button">
+                    <img src="icons/save.svg" alt="save">save
+                </button>
+                
+                <button id="upload-button">
+                    <img src="icons/upload.svg" alt="upload">upload
+                </button>
+        
+                <button id="clear-button">
+                    <img src="icons/reset.svg" alt="reset">Clear
+                </button>
+                <button id="add-to-paper-button">
+                    <img src="icons/done.svg" alt="done">Add inside paper
+                </button>
+                <button id="add top of paper" >
+                  <img src="icons/add top paper.svg" alt="done">Add top paper
+
+                </button>
             </div>
             <div id="sliders">
-            <label for="canvas-width">Canvas Width:</label>
-            <input type="range" id="canvas-width" min="0" max="100" value="100">
-            <label for="canvas-height">Canvas Height:</label>
-            <input type="range" id="canvas-height" min="0" max="100" value="100">
-            <label for="drawing-size">drawing-size:</label>
-            <input type="range" id="drawing-size" min="1" max="30" value="5" onchange="changeDrawingSize(value)">
+                <label for="canvas-width">Canvas Width:</label>
+                <input type="range" id="canvas-width" min="0" max="100" value="100">
+                
+                <label for="canvas-height">Canvas Height:</label>
+                <input type="range" id="canvas-height" min="0" max="100" value="100">
+                
+                <label for="drawing-size">drawing-size:</label>
+                <input type="range" id="drawing-size" min="1" max="30" value="5">
             </div>
-           
-    
+          </div>
         </div>
+        
+    
           <div class="input-box">
-              <div class="input-row">
-                  <label for="font-size-input">Font Size:</label>
-                  <input type="number" id="font-size-input" placeholder="Enter Font Size">
+            <div class="input-row">
+              <label for="font-size-input">Font Size:</label>
+              <div class="slider-container">
+                <input type="range" id="font-size-input" min="10" max="100" value="16" step="0.1">
+                <span id="font-size-input-value">16px</span>
               </div>
-              <div class="input-row">
-                  <label for="font-color-input">Font Color:</label>
-                  <input type="color" id="font-color-input" value="#000000">
+            </div>
+            
+            <div class="input-row">
+              <label for="font-color-input">Font Color:</label>
+              <input type="color" id="font-color-input" value="#000f64">
+            </div>
+            
+            <div class="input-row">
+              <label for="top-margin-font-size-input">Heading Font Size:</label>
+              <div class="slider-container">
+                <input type="range" id="top-margin-font-size-input" min="10" max="100" value="24" step="0.1">
+                <span id="top-margin-font-size-input-value">24px</span>
               </div>
-              <div class="input-row">
-                  <label for="top-margin-font-size-input" >heading Font Size:</label>
-                  <input type="number" id="top-margin-font-size-input"  placeholder="Enter heading Font Size">
-              </div>
+            </div>
+            
               
              
               <div class="input-row">
@@ -516,56 +561,88 @@
               
           </div>
           <div class="input-box">
-              
-              <div class="input-row">
-                  <label for="margin-top-input">input_top_margin:</label>
-                  <input type="number" id="margin-top-input" placeholder="Enter input top margin">
+            <div class="input-row">
+              <label for="margin-top-input">input_top_margin:</label>
+              <div class="slider-container">
+                <input type="range" id="margin-top-input" min="0" max="200" value="0" step="0.1">
+                <span id="margin-top-input-value">0px</span>
               </div>
-              <div class="input-row">
-                  <label for="margin-left-input">input_left_margin:</label>
-                  <input type="number" id="margin-left-input" class="margin-input" placeholder="Enter input left margin">
-              </div>
-              <div class="input-row">
-                  <label for="toggle-left-margin">left_margin:</label>
-                  <input  type="checkbox" id="toggle-left-margin" class="margin-input" checked aria-checked="true"  onclick="toggleLeftMargin()">
-                  <label for="toggle-top-margin">top_margin:</label>
-                  <input type="checkbox" id="toggle-top-margin" checked aria-checked="true"  onclick="toggleTopMargin()">
-              </div>
-              <div class="input-row">
-                <label for="toggle-left-border">Left Margin Line:</label>
-                <input type="checkbox" id="toggle-left-border" checked aria-checked="true" onclick="toggleLeftBorder()">
-                
-                <label for="toggle-top-border">Top Margin Line:</label>
-                <input type="checkbox" id="toggle-top-border" checked aria-checked="true" onclick="toggleTopBorder()">
             </div>
-              <div class="input-row">
-                  <label for="height-input">top_margin Height:</label>
-                  <input type="number"  min="10" max="30" id="height-input" placeholder="Enter Height">
+            
+            <div class="input-row">
+              <label for="margin-left-input">input_left_margin:</label>
+              <div class="slider-container">
+                <input type="range" id="margin-left-input" min="0" max="200" value="0" class="margin-input" step="0.1">
+                <span id="margin-left-input-value">0px</span>
               </div>
-              <div class="input-row">
-                  <label for="width-input">left_margin Width:</label>
-                  <input type="number"  min="10" max="30" id="width-input" placeholder="Enter Width">
+            </div>
+            
+            <div class="input-row">
+              <label for="toggle-left-margin">left_margin:</label>
+              <input type="checkbox" id="toggle-left-margin" class="margin-input" checked aria-checked="true" onclick="toggleLeftMargin()">
+            
+              <label for="toggle-top-margin">top_margin:</label>
+              <input type="checkbox" id="toggle-top-margin" checked aria-checked="true" onclick="toggleTopMargin()">
+            </div>
+            
+            <div class="input-row">
+              <label for="toggle-left-border">Left Margin Line:</label>
+              <input type="checkbox" id="toggle-left-border" checked aria-checked="true" onclick="toggleLeftBorder()">
+            
+              <label for="toggle-top-border">Top Margin Line:</label>
+              <input type="checkbox" id="toggle-top-border" checked aria-checked="true" onclick="toggleTopBorder()">
+            </div>
+            
+            <div class="input-row">
+              <label for="height-input">top_margin Height:</label>
+              <div class="slider-container">
+                <input type="range" id="height-input" min="0" max="100" value="50">
+                <span id="height-input-value">50%</span>
               </div>
-              
+            </div>
+            
+            <div class="input-row">
+              <label for="width-input">left_margin Width:</label>
+              <div class="slider-container">
+                <input type="range" id="width-input" min="0" max="100" value="50">
+                <span id="width-input-value">50%</span>
+              </div>
+            </div>
+            
           </div>
           <div class="input-box">
-              <div class="input-row">
-                  <label for="line-spacing-text-input">input line spacing:</label>
-                  <input type="number" id="line-spacing-text-input" placeholder="Enter input line  spacing">
+            <div class="input-row">
+              <label for="line-spacing-text-input">input line spacing:</label>
+              <div class="slider-container">
+                <input type="range" id="line-spacing-text-input" min="0" max="100" value="0" step="0.1">
+                <span id="line-spacing-text-input-value">0px</span>
               </div>
-              <div class="input-row">
-                  <label for="line-spacing-input">paper line spacing:</label>
-                  <input type="number" id="line-spacing-input" placeholder="Enter paper line spacing">
+            </div>
+            
+            <div class="input-row">
+              <label for="line-spacing-input">paper line spacing:</label>
+              <div class="slider-container">
+                <input type="range" id="line-spacing-input" min="0" max="100" value="0" step="0.1">
+                <span id="line-spacing-input-value">0px</span>
               </div>
-              <div class="input-row">
-                  <label for="letter-spacing-input">Letter Spacing:</label>
-                  <input type="number" id="letter-spacing-input" placeholder="Enter Letter Spacing">
+            </div>
+            
+            <div class="input-row">
+              <label for="letter-spacing-input">Letter Spacing:</label>
+              <div class="slider-container">
+                <input type="range" id="letter-spacing-input" min="0" max="100" value="0">
+                <span id="letter-spacing-input-value">0px</span>
               </div>
-              <div class="input-row">
-                  <label for="word-spacing-input">Word Spacing:</label>
-                  <input type="number" id="word-spacing-input" placeholder="Enter Word Spacing">
+            </div>
+            
+            <div class="input-row">
+              <label for="word-spacing-input">Word Spacing:</label>
+              <div class="slider-container">
+                <input type="range" id="word-spacing-input" min="0" max="100" value="0">
+                <span id="word-spacing-input-value">0px</span>
               </div>
-              
+            </div>
+            
               
           </div>
           <div class="input-box">
@@ -590,9 +667,13 @@
                   <input type="checkbox" id="shadow" checked aria-checked="true" oninput=" Shadow()">
               </div>
               <div class="input-row">
-                  <label for="quality-input">Image Quality:</label>
-                  <input type="number"  min="0" max="10" id="quality-input" placeholder="Enter Image Quality" oninput=" changeQuality()">
+                <label for="quality-input">Image Quality:</label>
+                <div class="slider-container">
+                  <input type="range" min="0" max="10" id="quality-input" value="2" oninput="changeQuality(); document.getElementById('quality-input-value').textContent = this.value;">
+                  <span id="quality-input-value">2</span>
+                </div>
               </div>
+              
           </div>
           
               
@@ -601,12 +682,40 @@
           
       </div>
       </div>
+      
+      <div id="pagination-controls" class="pagination-container">
+        <button class="pagination-btn" onclick="deleteCurrentPage()">
+          <img src="icons/delete.svg" alt="">Delete Current Page
+        </button>
+      
+        <button class="pagination-btn" id="prevBtn" onclick="prevPage()">
+          <img src="icons/pervious page.svg" alt="">Previous
+        </button>
+      
+        <span id="pageNumber" class="page-number">Page 1</span>
+      
+        <button class="pagination-btn" id="nextBtn" onclick="nextPage()">
+          Next <img src="icons/next page.svg" alt="">
+        </button>
+      
+        <button class="pagination-btn" id="creatnewpage" onclick="creatNewPage()">
+          <img src="icons/creat.svg" alt="">Create New Page
+        </button>
+        <div class="button-container">
+          <select id="download_options" class="buttontype_2" onchange="handleDownload(this.value)">
+            <option value="">⬇️ Download</option>
+            <option value="image">📷 Download Current Page Image</option>
+            <option value="pdf">📄 Download All as PDF</option>
+          </select>
+        </div>
+        
+      </div>
+      
       <div id="outer-container">
         
           <div id="final_page">
               <div id="shadow-effect">
                 
-                  <canvas id="drawing-canvas"  style="position: absolute; "></canvas>
                   
               
                   <div id="heading_page">
@@ -619,7 +728,7 @@
                           <div id="left-margin-in" contenteditable="true">write side content here ,example</div>
                         </div>
                           <div id="output-container">
-                              <div id="output-inner-container" class="ql-editor"> to write here , write in the text  editor . Not here. </div>
+                              <div id="output-inner-container"  class="ql-editor"> to write here , write in the text  editor . Not here. </div>
                               
                           </div>
                       </div>
@@ -635,15 +744,19 @@
       
   </div>
   </section>
+  
   <!-- Loader Spinner -->
   <div id="loader" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 9999;">
       <div class="spinner" style="width: 50px; height: 50px; border: 8px solid rgba(0, 0, 0, 0.1); border-left-color: #000; border-radius: 50%; animation: spin 1s linear infinite;"></div>
   </div>
   <!--buttons contaier-->
-  <div class="button-container">
-      <button id="generate_image" class="buttontype_2" onclick="generateAndPreview()">Generate Image</button>
-      <!-- <button class="buttontype_2" onclick="openDrawingContainer()">Draw</button> -->
+  <div id="pdf-loader" style="display: none;">
+    <div class="loader"></div>
+    <p>Generating PDF, please wait...
+      It may take 2 to 3 minutes based on your content.
+    </p>
   </div>
+  
   <section class="feature-section">
     <h2>Don't Know How To Use?</h2>
     <div class="feature-content">
@@ -656,11 +769,11 @@
     </div>
   </section>
   
-  <div id="images-store-container">
-      <!-- The queue container where images and download buttons will be added -->
+  <!-- <div id="images-store-container">
+     
   
       <p id="images-store-container-text">Click "Generate Image" Button to generate new image.it may take some time because images are in high quality.</p>
-  </div>
+  </div> -->
   
 <div id="support" class="support-us">
   <h2>Support Us</h2>
@@ -703,12 +816,9 @@ Support now to make sure it stays free and amazing—for you and everyone else.
 </div>
 
 <!-- Include JS & CSS -->
-<link rel="stylesheet" href="popup.css">
+<!-- <link rel="stylesheet" href="popup.css"> -->
       
-  <div class="button-container">       
-      <button id="generate_pdf" class="buttontype_2" onclick="generatePDF()">Generate PDF</button>
-      <button class="buttontype_2" onclick="clearAllImages()">Clear All Images</button>
-  </div>
+  
   
   
   
@@ -726,8 +836,8 @@ Support now to make sure it stays free and amazing—for you and everyone else.
           <label for="image-upload" class="file-button">upload Image:</label>
           <input style="display: none;" type="file" id="image-upload" accept="image/*">
       </div>
-          <button class="buttontype_1" onclick="drawImage()">Set Property</button>
-          <label for="image-x">X Position %:</label>
+      <button class="buttontype_1" id="set-property-button">Set Property</button>
+      <label for="image-x">X Position %:</label>
           <input type="number" id="image-x" min="0" max="100" value="0">
           <label for="image-y">Y Position %:</label>
           <input type="number" min="0" max="100" id="image-y" value="0">
@@ -756,8 +866,8 @@ Support now to make sure it stays free and amazing—for you and everyone else.
               <option value="100%">100%</option>
           </select>
           <br>
-          <button class="buttontype_1" onclick="setProperties()">Set</button>
-      </div>
+          <button class="buttontype_1" id="set-button">Set</button>
+        </div>
   </div>
   
     <!-- How It Works Section -->

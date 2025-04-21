@@ -1,3 +1,106 @@
+//for page to page 
+let currentQuill = null;
+let quillContents = ["", ""]; // content for page 0 and 1
+
+const originalPage = document.getElementById("final_page");
+const pages = [originalPage, originalPage.cloneNode(true)];
+
+let currentPageIndex = 1;
+
+// Create a new page (just clone the page)
+function createNewPage() {
+    pages.push(pages[0].cloneNode(true));
+    quillContents.push(""); // Add empty content slot for new page
+    console.log("New page created. Total pages: " + pages.length);
+    return pages[pages.length - 1];
+}
+
+function showPage(index, skipSave = false) {
+    // Save current page content
+    if (!skipSave && currentQuill) {
+        quillContents[currentPageIndex] = currentQuill.root.innerHTML;
+    }
+
+    // Swap page DOM
+    const container = document.getElementById("outer-container");
+    container.innerHTML = "";
+    container.appendChild(pages[index]);
+
+    currentPageIndex = index;
+
+    // Load content for new page
+    const saved = quillContents[index] || "";
+    currentQuill.root.innerHTML = saved;
+
+    document.getElementById("pageNumber").innerText = `Page ${index}/${pages.length - 1}`;
+}
+
+function initQuill() {
+    currentQuill = new Quill('#mixed-input', {
+        modules: {
+            syntax: true,
+            toolbar: '#toolbar-container',
+        },
+        placeholder: 'type or Paste your only  one page content here ',
+        theme: 'snow',
+    });
+
+    currentQuill.on('text-change', () => {
+        convertToHTML();
+    });
+
+    // Store initial page content
+    quillContents[1] = currentQuill.root.innerHTML;
+}
+
+// Navigation
+function creatNewPage() {
+   
+        createNewPage();
+    
+    showPage(pages.length - 1);
+}
+function deleteCurrentPage() {
+    if (pages.length <=2) {
+        alert("At least one page must remain.");
+        return;
+    }
+
+    // Remove current page content and DOM reference
+    pages.splice(currentPageIndex, 1);
+    quillContents.splice(currentPageIndex, 1);
+
+    // Adjust currentPageIndex if it's out of bounds
+    if (currentPageIndex >= pages.length) {
+        currentPageIndex = pages.length - 1;
+    }
+
+    showPage(currentPageIndex,true);
+    console.log("Page deleted. Total pages: " + pages.length);
+}
+
+function nextPage() {
+    
+    
+    const nextIndex = currentPageIndex + 1;
+    
+    if (nextIndex < pages.length) {
+        showPage(nextIndex);
+    }
+}
+
+function prevPage() {
+    if (currentPageIndex > 1) {
+        showPage(currentPageIndex - 1);
+    }
+}
+
+
+
+// Init
+initQuill();
+showPage(1);
+
 window.onload = function () {
     let consent = localStorage.getItem("cookie_consent");
 
@@ -102,17 +205,17 @@ outputResizeObserver.observe(document.getElementById('output-container'));
 
 window.addEventListener('resize',  setLeftMarginHeight);
 
-const quill = new Quill('#mixed-input', {
-    modules: {
-      syntax: true, // Enable syntax highlighting
-      toolbar: '#toolbar-container', // Attach toolbar to the editor
-    },
-    placeholder: 'Before start writing here , learn how to use this tool for the best experience ,from our How to Use guide!because Many users struggle to use this properly. and also For the best experience, we recommend using Google Chrome, as some features may not work in other browsers due to their difrente settings. If you notice any issues, please try switching to Chrome for optimal performance', // Placeholder text
-    theme: 'snow', // Snow theme for Quill
-  });
-  quill.on('text-change', function () {
-    convertToHTML(); // Call your function whenever content changes
-  });
+// const quill = new Quill('#mixed-input', {
+//     modules: {
+//       syntax: true, // Enable syntax highlighting
+//       toolbar: '#toolbar-container', // Attach toolbar to the editor
+//     },
+//     placeholder: 'Before start writing here , learn how to use this tool for the best experience ,from our How to Use guide!because Many users struggle to use this properly. and also For the best experience, we recommend using Google Chrome, as some features may not work in other browsers due to their difrente settings. If you notice any issues, please try switching to Chrome for optimal performance', // Placeholder text
+//     theme: 'snow', // Snow theme for Quill
+//   });
+//   quill.on('text-change', function () {
+//     convertToHTML(); // Call your function whenever content changes
+//   });
 // Navigationbar
 
 function toggleNav() {
@@ -201,285 +304,402 @@ function toggleNav() {
         }
 
         // Use event delegation to handle input changes
-        document.addEventListener('input', function(event) {
-            var target = event.target;
-            if (target.matches('#font-size-input')) {
-                changeCSSProperty('fontSize', target.value + 'px', ['output-inner-container','left-margin-in']);
+        // document.addEventListener('input', function(event) {
+        //     var target = event.target;
+        //     if (target.matches('#font-size-input')) {
+        //         changeCSSProperty('fontSize', target.value + 'px', ['output-inner-container','left-margin-in']);
                 
-            } else if (target.matches('#font-color-input')) {
-                changeCSSProperty('color', target.value, ['output-inner-container','left-margin-in','top-margin']);
-            } else if (target.matches('#letter-spacing-input')) {
-                changeCSSProperty('letterSpacing', target.value + 'px', ['output-inner-container','left-margin-in','top-margin']);
-            } else if (target.matches('#word-spacing-input')) {
-                changeCSSProperty('wordSpacing', target.value + 'px', ['output-inner-container','left-margin-in','top-margin']);
-            } else if (target.matches('#background-color-input')) {
-                changeCSSProperty('backgroundColor', target.value, ['shadow-effect']);
-            } else if (target.matches('#margin-top-input')) {
-                changeCSSProperty('marginTop', target.value + 'px', ['output-inner-container','left-margin-in']);
-            } else if (target.matches('#margin-left-input')) {
-                changeCSSProperty('marginLeft', target.value + 'px', ['output-inner-container']);
-            } else if (target.matches('#quality-input')) {
-                quality = parseFloat(target.value) || 1.0;
-            } else if (target.matches('#line-spacing-text-input')) {
-                changeCSSProperty('lineHeight', target.value + 'px', ['output-inner-container','left-margin-in']);
-            } else if (target.matches('#line-spacing-input')) {
-                document.getElementById('left-margin').style.backgroundSize = `100% ${target.value}px`;
-                document.getElementById('output-container').style.backgroundSize = `100% ${target.value}px`;
-            }else if (target.matches('#height-input')) {
-                changeCSSProperty('height', target.value + '%', ['box']);
-            }else if (target.matches('#width-input')) {
-                changeCSSProperty('width', target.value + '%', ['subbox','left-margin']);
-            }else if (target.matches('#top-margin-font-size-input')) {
-                changeCSSProperty('fontSize', target.value + 'px', ['top-margin']);
-            }
+        //     } else if (target.matches('#font-color-input')) {
+        //         changeCSSProperty('color', target.value, ['output-inner-container','left-margin-in','top-margin']);
+        //     } else if (target.matches('#letter-spacing-input')) {
+        //         changeCSSProperty('letterSpacing', target.value + 'px', ['output-inner-container','left-margin-in','top-margin']);
+        //     } else if (target.matches('#word-spacing-input')) {
+        //         changeCSSProperty('wordSpacing', target.value + 'px', ['output-inner-container','left-margin-in','top-margin']);
+        //     } else if (target.matches('#background-color-input')) {
+        //         changeCSSProperty('backgroundColor', target.value, ['shadow-effect']);
+        //     } else if (target.matches('#margin-top-input')) {
+        //         changeCSSProperty('marginTop', target.value + 'px', ['output-inner-container','left-margin-in']);
+        //     } else if (target.matches('#margin-left-input')) {
+        //         changeCSSProperty('marginLeft', target.value + 'px', ['output-inner-container']);
+        //     } else if (target.matches('#quality-input')) {
+        //         quality = parseFloat(target.value) || 1.0;
+        //     } else if (target.matches('#line-spacing-text-input')) {
+        //         changeCSSProperty('lineHeight', target.value + 'px', ['output-inner-container','left-margin-in']);
+        //     } else if (target.matches('#line-spacing-input')) {
+        //         document.getElementById('left-margin').style.backgroundSize = `100% ${target.value}px`;
+        //         document.getElementById('output-container').style.backgroundSize = `100% ${target.value}px`;
+        //     }else if (target.matches('#height-input')) {
+        //         changeCSSProperty('height', target.value + '%', ['box']);
+        //     }else if (target.matches('#width-input')) {
+        //         changeCSSProperty('width', target.value + '%', ['subbox','left-margin']);
+        //     }else if (target.matches('#top-margin-font-size-input')) {
+        //         changeCSSProperty('fontSize', target.value + 'px', ['top-margin']);
+        //     }
 
-        });
+        // });
 
+
+
+        // document.addEventListener('input', handleStyleChange);
+
+        // function handleStyleChange(event) {
+        //     var target = event.target;
+        //     if (target.matches('#font-size-input')) {
+        //         changeCSSProperty('fontSize', target.value + 'px', ['output-inner-container','left-margin-in']);
+                
+        //     } else if (target.matches('#font-color-input')) {
+        //         changeCSSProperty('color', target.value, ['output-inner-container','left-margin-in','top-margin']);
+        //     } else if (target.matches('#letter-spacing-input')) {
+        //         changeCSSProperty('letterSpacing', target.value + 'px', ['output-inner-container','left-margin-in','top-margin']);
+        //     } else if (target.matches('#word-spacing-input')) {
+        //         changeCSSProperty('wordSpacing', target.value + 'px', ['output-inner-container','left-margin-in','top-margin']);
+        //     } else if (target.matches('#background-color-input')) {
+        //         changeCSSProperty('backgroundColor', target.value, ['shadow-effect']);
+        //     } else if (target.matches('#margin-top-input')) {
+        //         changeCSSProperty('marginTop', target.value + 'px', ['output-inner-container','left-margin-in']);
+        //     } else if (target.matches('#margin-left-input')) {
+        //         changeCSSProperty('marginLeft', target.value + 'px', ['output-inner-container']);
+        //     } else if (target.matches('#quality-input')) {
+        //         quality = parseFloat(target.value) || 1.0;
+        //     } else if (target.matches('#line-spacing-text-input')) {
+        //         changeCSSProperty('lineHeight', target.value + 'px', ['output-inner-container','left-margin-in']);
+        //     } else if (target.matches('#line-spacing-input')) {
+        //         document.getElementById('left-margin').style.backgroundSize = `100% ${target.value}px`;
+        //         document.getElementById('output-container').style.backgroundSize = `100% ${target.value}px`;
+        //     }else if (target.matches('#height-input')) {
+        //         changeCSSProperty('height', target.value + '%', ['box']);
+        //     }else if (target.matches('#width-input')) {
+        //         changeCSSProperty('width', target.value + '%', ['subbox','left-margin']);
+        //     }else if (target.matches('#top-margin-font-size-input')) {
+        //         changeCSSProperty('fontSize', target.value + 'px', ['top-margin']);
+        //     }
+        // }
+        // function applyAllInputStyles() {
+        //     const inputs = [
+        //         document.getElementById('font-size-input'),
+        //         document.getElementById('font-color-input'),
+        //         document.getElementById('letter-spacing-input'),
+        //         document.getElementById('word-spacing-input'),
+        //         document.getElementById('background-color-input'),
+        //         document.getElementById('margin-top-input'),
+        //         document.getElementById('margin-left-input'),
+        //         document.getElementById('quality-input'),
+        //         document.getElementById('line-spacing-text-input'),
+        //         document.getElementById('line-spacing-input'),
+        //         document.getElementById('height-input'),
+        //         document.getElementById('width-input'),
+        //         document.getElementById('top-margin-font-size-input'),
+        //     ];
+        
+        //     inputs.forEach(input => {
+        //         if (input) handleStyleChange({ target: input });
+        //     });
+        // }
+        // function applyAllChanges() {
+        //     applyAllInputStyles();         // existing styles
+        //     changeFontFamily()
+        //     toggleLeftMargin(false)
+        //     toggleTopMargin(false);
+        //     toggleLeftBorder(false);
+        //     toggleTopBorder(false);
+        //     toggleBackground(false);
+        //     Shadow(false);
+        //     changeBackgroundImage()
+
+
+        // }
+        // document.getElementById('nextBtn').addEventListener('click', applyAllChanges);
+        // document.getElementById('prevBtn').addEventListener('click', applyAllChanges);
+        
+        // Utility function to set CSS variable values
+function setCSSVariable(variable, value) {
+    document.documentElement.style.setProperty(`--${variable}`, value);
+  }
+  window.addEventListener('DOMContentLoaded', () => {
+    const cssVars = [
+      { id: 'font-size-input', var: '--font-size', unit: 'px' },
+      { id: 'top-margin-font-size-input', var: '--top-margin-font-size', unit: 'px' },
+      { id: 'letter-spacing-input', var: '--letter-spacing', unit: 'px' },
+      { id: 'word-spacing-input', var: '--word-spacing', unit: 'px' },
+      { id: 'margin-top-input', var: '--margin-top', unit: 'px' },
+      { id: 'margin-left-input', var: '--margin-left', unit: 'px' },
+      { id: 'line-spacing-text-input', var: '--line-height', unit: 'px' },
+      { id: 'line-spacing-input', var: '--line-spacing', unit: 'px' },
+      { id: 'height-input', var: '--box-height', unit: '%' },
+      { id: 'width-input', var: '--box-width', unit: '%' }
+    ];
+  
+    const rootStyles = getComputedStyle(document.documentElement);
+  
+    cssVars.forEach(({ id, var: cssVar, unit }) => {
+      const input = document.getElementById(id);
+      const span = document.getElementById(id + '-value');
+  
+      if (input) {
+        let value = rootStyles.getPropertyValue(cssVar).trim();
+        if (value.endsWith(unit)) {
+          value = value.replace(unit, '');
+        }
+        input.value = value;
+        if (span) span.textContent = value;
+      }
+    });
+  
+    // Set color input value if applicable
+    const fontColorInput = document.getElementById('font-color-input');
+    const fontColor = rootStyles.getPropertyValue('--font-color').trim();
+    if (fontColorInput && fontColor) {
+      fontColorInput.value = fontColor;
+    }
+  });
+  
+  // Add event listeners to the inputs dynamically
+  document.addEventListener('input', function(event) {
+    const target = event.target;
+  
+    // Show the value beside the slider (if a span exists with ID pattern like 'xyz-value')
+    const valueDisplay = document.getElementById(target.id + '-value');
+    if (valueDisplay) {
+      valueDisplay.textContent = target.value;
+    }
+  
+    // Set corresponding CSS variables as before
+    if (target.matches('#font-size-input')) {
+      setCSSVariable('font-size', target.value + 'px');
+    } else if (target.matches('#font-color-input')) {
+      setCSSVariable('font-color', target.value);
+    } else if (target.matches('#letter-spacing-input')) {
+      setCSSVariable('letter-spacing', target.value + 'px');
+    } else if (target.matches('#word-spacing-input')) {
+      setCSSVariable('word-spacing', target.value + 'px');
+    } else if (target.matches('#background-color-input')) {
+      setCSSVariable('background-color', target.value);
+    } else if (target.matches('#margin-top-input')) {
+      setCSSVariable('margin-top', target.value + 'px');
+    } else if (target.matches('#margin-left-input')) {
+      setCSSVariable('margin-left', target.value + 'px');
+    } else if (target.matches('#line-spacing-text-input')) {
+      setCSSVariable('line-height', target.value + 'px');
+    } else if (target.matches('#line-spacing-input')) {
+      setCSSVariable('line-spacing', target.value + 'px');
+    } else if (target.matches('#height-input')) {
+      setCSSVariable('box-height', target.value + '%');
+    } else if (target.matches('#width-input')) {
+      setCSSVariable('box-width', target.value + '%');
+    } else if (target.matches('#top-margin-font-size-input')) {
+      setCSSVariable('top-margin-font-size', target.value + 'px');
+    }
+  });
+  
+  
+                
         // Toggle left margin
         let leftMarginOn = true;
         let topMarginOn = true;
         function toggleLeftMargin() {
-            leftMarginOn = !leftMarginOn;
-            //document.getElementById('toggle-left-margin').textContent = 'Left Margin: ' + (leftMarginOn ? 'ON' : 'OFF');
-            var leftMargin = document.getElementById('left-margin');
            
-            var topMargin = document.getElementById('top-margin');
-            var subbox = document.getElementById('subbox');
-            var outputcontainer = document.getElementById('output-container');
-            
-            // // Toggle left border on output container
-            // outputcontainer.style.borderLeft = leftMarginOn ? '2px solid #00000066' : 'none';
-
-            // // Toggle bottom and left border on top-margin
-            // // topMargin.style.borderBottom = leftMarginOn ?  '1px solid #00000066': 'none';
-            // topMargin.style.borderLeft = leftMarginOn ?  '2px solid #00000066': 'none';
-
-            // // Toggle bottom border on subbox
-            // subbox.style.borderBottom = leftMarginOn ?  '1px solid #00000066': 'none';
-
-            if (leftMargin.style.display === 'none' && subbox.style.display === 'none') {
-                leftMargin.style.display = 'block';
-                subbox.style.display = 'block';
-            } else {
-                leftMargin.style.display = 'none';
-                subbox.style.display = 'none';
-            }
+                leftMarginOn = !leftMarginOn;
+           
+        
+            // Update the CSS variable using the helper function
+            setCSSVariable('left-margin-display', leftMarginOn ? 'block' : 'none');
         }
-
         // Initial states
-let isLeftBorderOn = true;
-let isTopBorderOn = true;
+
 
         // Toggle top margin
         function toggleTopMargin() {
-            topMarginOn = !topMarginOn;
-            //document.getElementById('toggle-top-margin').textContent = 'Top Margin: ' + (topMarginOn ? 'ON' : 'OFF');
-            var topMargin = document.getElementById('box');
-            topMargin.style.display = topMargin.style.display === 'none' ? 'flex' : 'none';
+            
+                topMarginOn = !topMarginOn;
+            
+        
+            // Update the CSS variable for top margin display
+            setCSSVariable('top-margin-display', topMarginOn ? 'flex' : 'none');
         }
+
+
+        let isLeftBorderOn = true;
+        let isTopBorderOn = true;
         // Toggle left border
         function toggleLeftBorder() {
-            isLeftBorderOn = !isLeftBorderOn;
+           
+                isLeftBorderOn = !isLeftBorderOn;
+            
         
-            // Get DOM elements
-            var outputContainer = document.getElementById('output-container');
-            var topMargin = document.getElementById('top-margin');
+            const leftBorderStyle = isLeftBorderOn ? '2px solid #00000066' : 'none';
         
-            // Toggle left border on output container
-            outputContainer.style.borderLeft = isLeftBorderOn ? '2px solid #00000066' : 'none';
-        
-            // Toggle left border on top margin
-            topMargin.style.borderLeft = isLeftBorderOn ? '2px solid #00000066' : 'none';
+            setCSSVariable('output-left-border', leftBorderStyle);
+            setCSSVariable('top-margin-left-border', leftBorderStyle);
         }
         
         // Toggle top border
         function toggleTopBorder() {
-            isTopBorderOn = !isTopBorderOn;
+          
+                isTopBorderOn = !isTopBorderOn;
+            
+    
+            const topBorderStyle = isTopBorderOn ? '1px solid #00000066' : 'none';
         
-            // Get DOM elements
-            var topMargin = document.getElementById('top-margin');
-            var subbox = document.getElementById('subbox');
-        
-            // Toggle bottom border on top margin
-            topMargin.style.borderBottom = isTopBorderOn ? '1px solid #00000066' : 'none';
-        
-            // Toggle bottom border on subbox
-            subbox.style.borderBottom = isTopBorderOn ? '1px solid #00000066' : 'none';
+            setCSSVariable('top-margin-bottom-border', topBorderStyle);
+            setCSSVariable('subbox-bottom-border', topBorderStyle);
         }
+        
         
 
 
         // Toggle background image
-function toggleBackground() {
-    var elements = document.querySelectorAll('#left-margin, #output-container');
-    var bgToggle = document.getElementById('bg-toggle');
+        let isBackgroundOn = true;
 
-    // Determine the background style based on the checkbox state
-    var backgroundStyle = bgToggle.checked ? 'linear-gradient(#00000066 0.05em, transparent 0.1em)' : 'none';
-
-    // Loop through each selected element and apply the background image
-    elements.forEach(function(element) {
-        element.style.backgroundImage = backgroundStyle;
-    });
-}
+        function toggleBackground() {
+            
+                isBackgroundOn = !isBackgroundOn;
+            
+        
+            const backgroundValue = isBackgroundOn
+                ? 'linear-gradient(#00000066 0.05em, transparent 0.1em)'
+                : 'none';
+        
+            setCSSVariable('background-lines', backgroundValue);
+        }
+        
+        
+        let isShadowOn = true;
 
         function Shadow() {
-            var heading_page = document.getElementById('heading_page');
-            var effect = document.getElementById('shadow');
+           
+                isShadowOn = !isShadowOn;
+            
 
-            heading_page.style.background = effect.checked ? 'linear-gradient(-75deg, rgb(0 0 0 / 40%), rgb(0 0 0 / 0%))' : 'none';
+            const shadowValue = isShadowOn
+                ? 'linear-gradient(-75deg, rgb(0 0 0 / 40%), rgb(0 0 0 / 0%))'
+                : 'none';
+
+            setCSSVariable('heading-shadow', shadowValue);
         }
+
+
 
         function changeBackgroundImage() {
             var input = document.getElementById('background-image-input');
             var file = input.files[0];
             var reader = new FileReader();
+        
             document.getElementById('remove-button').style.display = 'block';
-
+        
             reader.onload = function(e) {
                 var backgroundImage = e.target.result;
-                document.getElementById('shadow-effect').style.backgroundImage = "url('" + backgroundImage + "')";
+                setCSSVariable('custom-background-image', `url('${backgroundImage}')`);
             };
-
+        
             reader.readAsDataURL(file);
         }
-
+        
         function removeBackgroundImage() {
-            document.getElementById('shadow-effect').style.backgroundImage = 'none';
+            // Reset the CSS variable to 'none' instead of setting background-image directly
+            setCSSVariable('custom-background-image', '');
             
             document.getElementById('background-image-input').value = ''; // Clear the file input
             document.getElementById('remove-button').style.display = 'none'; // Hide the remove button
         }
+        
+   
         // Function to apply the custom font to MathJax elements
 
-
-var customFontUploaded = false;
-var uploadedFontFamily = '';
-
-// Function to apply custom font to MathJax elements
-function applyCustomFontToMathJax(font, fallbackfont) {
-    var effectiveFont = customFontUploaded ? uploadedFontFamily : font;
-    var useDefaultMathFont = document.getElementById('default-math-font-checkbox').checked;
-
-    var mathJaxElements = document.querySelectorAll('.katex .mathdefault,.katex .mathnormal,.katex .op-symbol.small-op,.katex,.katex .mathbf,.katex .delimsizing.size2');
-    mathJaxElements.forEach(function(element) {
-        if (useDefaultMathFont) {
-            element.style.fontFamily ='CustomFont, KaTeX_Main';
-        } else {
-            element.style.fontFamily = effectiveFont + fallbackfont;
+        let customFontUploaded = false;
+        let uploadedFontFamily = '';
+        
+        // Helper: set a CSS variable
+        function setCSSVariable(name, value) {
+          document.documentElement.style.setProperty(`--${name}`, value);
         }
-    });
-}
-function toggleMathFont() {
-    document.getElementById('default-math-font-checkbox').addEventListener('change', function() {
-        const isChecked = this.checked;
-        const elements = document.querySelectorAll('.katex .mathdefault,.katex .mathnormal,.katex .op-symbol.small-op,.katex,.katex .mathbf,.katex .delimsizing.size2');
-        elements.forEach(element => {
-            if (isChecked) {
-                element.style.fontFamily = 'customFont, KaTeX_Main';
-            } 
-        });
-    });
-}
-function changeFontfile(elementId, fontFamily) {
-    var fileInput = document.getElementById('font-file-input');
-    if (!fileInput.files[0]) {
-        alert('Please upload a font file first.');
-        return;
-    }
-
-    var reader = new FileReader();
-    reader.onload = function(e) {
-        var fontData = e.target.result;
-
-        // Convert ArrayBuffer to Base64 for CSS @font-face
-        var base64FontData = arrayBufferToBase64(fontData);
-        var fontFaceRule = `
-            @font-face {
-                font-family: '${fontFamily}';
-                src: url(data:font/truetype;base64,${base64FontData}) format('truetype');
+        
+        // Core: update both main- and math-font variables
+        function applyFontVariables(fontFamily) {
+          // Build the stack: Uploaded/fontFamily, then CustomFont, then KaTeX_Main
+          const stack = `${fontFamily}, CustomFont, KaTeX_Main`;
+          setCSSVariable('main-font', stack);
+        
+          // Math toggles to either CustomFont stack or use same stack
+          const useDefaultMath = document.getElementById('default-math-font-checkbox').checked;
+          setCSSVariable('math-font', useDefaultMath
+            ? `CustomFont, KaTeX_Main`
+            : stack
+          );
+        }
+        
+        // Call when dropdown changes
+        function changeFontFamily() {
+          const select = document.getElementById('font-family-select');
+          const font = select.value;
+          customFontUploaded = false;           // clear any previous upload
+          uploadedFontFamily = '';
+          document.getElementById('font-file-input').value = ''; 
+          applyFontVariables(font);
+        }
+        
+        // Call when uploading a font file
+        function changeFontfile(elementId, fontFamily) {
+            const fileInput = document.getElementById('font-file-input');
+            if (!fileInput.files[0]) {
+                alert('Please upload a font file first.');
+                return;
             }
-        `;
-
-        // Remove previous custom font-face rule if any
-        if (window.customFontStyle) {
-            window.customFontStyle.remove();
+        
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                // Convert ArrayBuffer to Base64 for CSS @font-face
+                const fontData = e.target.result;
+                const base64FontData = arrayBufferToBase64(fontData);
+        
+                // Create the @font-face rule
+                const fontFaceRule = `
+                    @font-face {
+                        font-family: '${fontFamily}';
+                        src: url(data:font/truetype;base64,${base64FontData}) format('truetype');
+                    }
+                `;
+        
+                // Remove previous custom font-face rule if any
+                if (window.customFontStyle) {
+                    window.customFontStyle.remove();
+                }
+        
+                // Create a new style element to inject @font-face rule
+                const style = document.createElement('style');
+                style.innerHTML = fontFaceRule;
+                document.head.appendChild(style);
+                window.customFontStyle = style; 
+        
+            // Now treat this as the custom font
+            customFontUploaded = true;
+            uploadedFontFamily = fontFamily;
+            applyFontVariables(fontFamily);
+            input.value = '';
+          };
+          reader.readAsArrayBuffer(fileInput.files[0]);
+                }
+                function arrayBufferToBase64(buffer) {
+                    var binary = '';
+                    var bytes = new Uint8Array(buffer);
+                    var len = bytes.byteLength;
+                    for (var i = 0; i < len; i++) {
+                        binary += String.fromCharCode(bytes[i]);
+                    }
+                    return window.btoa(binary);
+                }
+                
+        
+        // Call when math-font checkbox toggles
+        function toggleMathFont() {
+          // Pick whichever font is active (uploaded or dropdown)
+          const select = document.getElementById('font-family-select');
+          const baseFont = customFontUploaded ? uploadedFontFamily : select.value;
+          applyFontVariables(baseFont);
         }
-
-        // Create a new style element to inject @font-face rule
-        var style = document.createElement('style');
-        style.innerHTML = fontFaceRule;
-        document.head.appendChild(style);
-        window.customFontStyle = style;  // Store the new custom font style
-
-        // Apply the new font to the specified element
-        var element = document.getElementById(elementId);
-        if (element) {
-            element.style.fontFamily = fontFamily;
-        }
-
-        // Apply custom font to MathJax elements (if needed)
-// Apply custom font to MathJax elements, with custom font first and KaTeX as fallback
-        applyCustomFontToMathJax(fontFamily +  ', CustomFont',', KaTeX_Main' );
-
-        // Set the font for the output container and heading page
-        var outputContainer = document.getElementById('output-inner-container');
-        var heading_page = document.getElementById('heading_page');
-        outputContainer.style.fontFamily = fontFamily +  ', CustomFont',', KaTeX_Main';
-        heading_page.style.fontFamily = fontFamily +  ', CustomFont',', KaTeX_Main';
-
-        // Hook into MathJax rendering events
-        quill.on('text-change', function() {
-            applyCustomFontToMathJax(fontFamily +  ', CustomFont',', KaTeX_Main' );
-          });
-    
-        // Reset file input to clear the previously uploaded file
-        fileInput.value = "";
-    };
-
-    reader.readAsArrayBuffer(fileInput.files[0]);
-}
-
-// Helper function to convert ArrayBuffer to Base64
-function arrayBufferToBase64(buffer) {
-    var binary = '';
-    var bytes = new Uint8Array(buffer);
-    var len = bytes.byteLength;
-    for (var i = 0; i < len; i++) {
-        binary += String.fromCharCode(bytes[i]);
-    }
-    return window.btoa(binary);
-}
-
-function changeFontFamily() {
-    var fontFamilySelect = document.getElementById('font-family-select');
-    var selectedFont = fontFamilySelect.options[fontFamilySelect.selectedIndex].value;
-
-    // Reset the custom font flag if a new font is selected from the dropdown
-    customFontUploaded = false;
-    uploadedFontFamily = '';
-
-    // Clear the file input
-    var fileInput = document.getElementById('font-file-input');
-    fileInput.value = '';
-
-    // Apply selected font to MathJax elements
-    applyCustomFontToMathJax(selectedFont +  ', CustomFont',', KaTeX_Main' );
-
-    // Also, set the font for the output container and heading page
-    var outputContainer = document.getElementById('output-inner-container');
-    var heading_page = document.getElementById('heading_page');
-    outputContainer.style.fontFamily = selectedFont + ', CustomFont',', KaTeX_Main';
-    heading_page.style.fontFamily = selectedFont +  ', CustomFont',', KaTeX_Main';
-    quill.on('text-change', function() {
-        applyCustomFontToMathJax(selectedFont +  ', CustomFont',', KaTeX_Main' );
-      });
-
-    
-}
+        
 
 
-document.addEventListener('DOMContentLoaded', changeFontFamily());
+document.addEventListener('DOMContentLoaded', changeFontFamily);
 
 
 // //to cntrol screeshot scroll problem 
@@ -659,192 +879,109 @@ function changeQuality() {
 //     // Set the border back to '1px solid black' after processing
 //     canvas.style.border = '1px solid black';
 // }
-function generateAndPreview() {
-    // Select the canvas element by its ID
-    const canvas = document.getElementById('drawing-canvas');
-    const button = document.getElementById('generate_image');
+function handleDownload(value) {
+    if (value === "image") {
+      downloadCurrentPageImage();
+    } else if (value === "pdf") {
+      generatePDFfromPages();
+    }
+  
+    // Reset selection to default
+    document.getElementById('download_options').value = '';
+  }
+  
+async function generatePDFfromPages() {
+    const loader = document.getElementById('pdf-loader');
+    loader.style.display = 'flex'; // Show loader
 
-    // Change the button text to "Generating..."
-    document.getElementById('loader').style.display = 'block';
-
-    // Set the border to 'none' dynamically
-    canvas.style.border = 'none';
-    setTimeout(() => {
-        //shadow effect 
-        const shadowBox = document.getElementById('shadow').checked;
-        if (shadowBox) {
-            const randomAngle = Math.floor(Math.random() * 360);
-            const target = document.getElementById('heading_page');
-            target.style.background = `linear-gradient(${randomAngle}deg, rgb(0 0 0 / 40%), rgb(0 0 0 / 0%))`;
-        }
-        var textElement = document.getElementById('images-store-container-text');
-        if (textElement) {
-            // Remove the text element
-            textElement.remove();
-        }
-        var containerWrapper = document.getElementById('shadow-effect');
-        // containerWrapper.style.border = 'none';
-        var imageQueueContainer = document.getElementById('images-store-container');
-
-        html2canvas(containerWrapper, { scale: quality ,useCORS: true, willReadFrequently: true}).then(function (canvas) {
-            // Create a new image object
-            var newImage = new Image();
-            newImage.src = canvas.toDataURL();
-
-            // Create a container for the new image and its download button
-            var imageContainer = document.createElement('div');
-            imageContainer.classList.add('image-container');
-
-            // Create a cross sign for removing the image
-            var crossSign = document.createElement('div');
-            crossSign.textContent = '✖';
-            crossSign.classList.add('buttontype_2');
-            crossSign.onclick = function () {
-                removeImage(imageContainer, newImage);
-            };
-
-            // Create a download button for the new image
-            var downloadButton = document.createElement('button');
-            downloadButton.textContent = 'Download Image ' + imageQueue.length;
-            downloadButton.classList.add('buttontype_2');
-            downloadButton.onclick = function () {
-                downloadImage(newImage, 'container_image_' + imageQueue.length + '.png');
-            };
-
-            // Create a preview image for the new image
-            var previewImage = new Image();
-            previewImage.src = canvas.toDataURL();
-            previewImage.classList.add('preview-image');
-            previewImage.onclick = function () {
-                openImageInNewTab(newImage.src);
-            };
-
-            // Create a container for the move left and move right buttons
-            var moveButtonsContainer = document.createElement('div');
-            moveButtonsContainer.classList.add('button-container');
-
-            // Create buttons for moving left and right
-            var moveLeftButton = document.createElement('button');
-            moveLeftButton.textContent = '←';
-            moveLeftButton.classList.add('buttontype_2');
-            moveLeftButton.onclick = function () {
-                moveImageLeft(imageContainer);
-            };
-
-            var moveRightButton = document.createElement('button');
-            moveRightButton.textContent = '→';
-            moveRightButton.classList.add('buttontype_2');
-            moveRightButton.onclick = function () {
-                moveImageRight(imageContainer);
-            };
-
-            // Append the move buttons to the container
-            moveButtonsContainer.appendChild(moveLeftButton);
-            moveButtonsContainer.appendChild(moveRightButton);
-
-            // Append the preview image, move buttons, cross sign, and download button to the container
-            imageContainer.appendChild(crossSign);
-            imageContainer.appendChild(previewImage);
-            imageContainer.appendChild(moveButtonsContainer); // Append the move buttons container
-            imageContainer.appendChild(downloadButton);
-
-            // Append the container to the queue container
-            imageQueueContainer.appendChild(imageContainer);
-
-            // Add the new image to the queue
-            imageQueue.push(newImage);
-
-            // Add a shadow effect to the image container
-            imageContainer.style.boxShadow = '2px 2px 5px rgba(0, 0, 0, 0.5)';
-            // containerWrapper.style.border = "1px solid black";
-            document.getElementById('loader').style.display = 'none';
-            document.getElementById('drawing-canvas').style.border = '1px solid black';
-            
-        });
-    }, 1000); 
     
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'px',
+        format: 'a4'
+    });
+
+    for (let i = 1; i < pages.length; i++) {
+        showPage(i);
+        await waitForRender();
+
+        const canvas = await html2canvas(document.getElementById('shadow-effect'), {
+            scale: 2, // You can try reducing to 1.5 or 1 for speed
+            useCORS: true,
+            allowTaint: true
+        });
+
+        const imgData = canvas.toDataURL('image/png');
+
+        // Add image to PDF (scale to fit A4)
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = pdf.internal.pageSize.getHeight();
+
+        pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+
+        // Avoid adding an extra page at the end
+        if (i < pages.length - 1) {
+            pdf.addPage();
+        }
+        
+    }
+
+    pdf.save('AllPages.pdf');
+    loader.style.display = 'none';
+    const closeBtn = document.querySelector('.close-btn');
+
+    showMainPopup(); // Show main popup after 30 seconds
+    setTimeout(() => {
+        closeBtn.style.display = 'block';
+      }, 10000);
 }
 
-        function removeImage(imageContainer, image) {
-            var index = imageQueue.indexOf(image);
-            if (index !== -1) {
-                // Remove the image from the array
-                imageQueue.splice(index, 1);
-                // Remove the image container from the queue container
-                imageContainer.remove();
+function waitForRender() {
+    return new Promise(resolve => {
+        requestAnimationFrame(() => {
+            requestAnimationFrame(resolve);
+        });
+    });
+}
 
-                // Check if the queue is empty
-                if (imageQueue.length === 0) {
-                    var imageQueueContainer = document.getElementById('images-store-container');
-                    var textElement = document.createElement('p');
-                    textElement.id = 'images-store-container-text';
-                    textElement.textContent = 'Click "Generate Image" Button to generate new image.it may take some time because images are in high quality.';
-                    imageQueueContainer.appendChild(textElement);
-                }
-            }
+function downloadCurrentPageImage() {
+    const loader = document.getElementById('loader');
+    loader.style.display = 'block'; // Show the loader at the beginning
+    const canvas = document.getElementById('drawing-canvas');
+    const containerWrapper = document.getElementById('shadow-effect');
+    const scale = (window.devicePixelRatio > 1 ? window.devicePixelRatio : 1) * quality;
+
+    html2canvas(containerWrapper, {
+        scale: scale, // Ensure sharp images
+        useCORS: true,
+        willReadFrequently: true,
+    }).then(function (canvas) {
+        const imageData = canvas.toDataURL('image/png');
+
+        // Create an anchor element to trigger the download
+        const link = document.createElement('a');
+        link.href = imageData;
+        link.download = 'current_page_image.png';
+
+        // Try to trigger download (works on PC but may not on mobile)
+        if (link.download) {
+            link.click(); // Try to download automatically
+        } else {
+            // Fallback for mobile where automatic download may not work
+            window.open(imageData, '_blank'); // Open the image in a new tab for mobile
         }
+        loader.style.display = 'none'; // Hide the loader once the image is ready for download
+    });
+}
+
+    // Function to process all pages
+    
+
+// Now, simply call the function to process all pages
 
 
 
-        function moveImageLeft(imageContainer) {
-            var currentIndex = Array.from(imageContainer.parentNode.children).indexOf(imageContainer);
-            if (currentIndex > 0) {
-                imageContainer.parentNode.insertBefore(imageContainer, imageContainer.parentNode.children[currentIndex - 1]);
-                // Swap the images in the queue
-                [imageQueue[currentIndex], imageQueue[currentIndex - 1]] = [imageQueue[currentIndex - 1], imageQueue[currentIndex]];
-            }
-        }
-
-        function moveImageRight(imageContainer) {
-            var currentIndex = Array.from(imageContainer.parentNode.children).indexOf(imageContainer);
-            if (currentIndex < imageQueue.length - 1) {
-                imageContainer.parentNode.insertBefore(imageContainer, imageContainer.parentNode.children[currentIndex + 2]);
-                // Swap the images in the queue
-                [imageQueue[currentIndex], imageQueue[currentIndex + 1]] = [imageQueue[currentIndex + 1], imageQueue[currentIndex]];
-            }
-        }
-
-        function clearAllImages() {
-            var imageQueueContainer = document.getElementById('images-store-container');
-            imageQueueContainer.innerHTML = '<p id="images-store-container-text">Click "Generate Image" Button to generate new image</p>';
-            imageQueue = [];
-        }
-
-
-        function downloadImage(image, fileName) {
-            var canvas = document.createElement('canvas');
-            var ctx = canvas.getContext('2d');
-            canvas.width = image.width;
-            canvas.height = image.height;
-            ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
-        
-            canvas.toBlob(function(blob) {
-                // Creating a blob URL
-                var blobURL = URL.createObjectURL(blob);
-        
-                // Create a link and simulate a user click on it
-                var link = document.createElement('a');
-                link.href = blobURL;
-                link.download = fileName;
-        
-                // For mobile devices: Make sure the link is added to the DOM and user interacts with it
-                document.body.appendChild(link);
-                
-                // Try triggering the click manually
-                link.click();
-                
-                // Cleanup: Remove the link from the DOM and revoke the object URL
-                document.body.removeChild(link);
-                URL.revokeObjectURL(blobURL);
-            }, 'image/png');
-        }
-
-
-        function openImageInNewTab(imageSrc) {
-            var newTab = window.open();
-            newTab.document.body.innerHTML = '<img src="' + imageSrc + '" style="height: 90%;">';
-        }
-        
         // function generatePDF() {
         //     // Check if there are any images in the imageQueue
         //     if (imageQueue.length === 0) {
@@ -910,77 +1047,6 @@ function generateAndPreview() {
         
         //     }, 0); // Use a timeout to allow the loader to display first
         // }
-        function generatePDF() {
-            // Check if there are any images in the imageQueue
-            if (imageQueue.length === 0) {
-                alert("There are no images to generate a PDF. Please add images before generating.");
-                return; // Exit the function if there are no images
-            }
-        
-            // Show the loader before starting the PDF generation
-            document.getElementById('loader').style.display = 'block';
-        
-            // Delay the PDF generation by a few milliseconds to allow the loader to show up
-            setTimeout(function () {
-                // Create a new jsPDF instance
-                var { jsPDF } = jspdf;
-                var pdf = new jsPDF({
-                    orientation: 'landscape', // Set the orientation to landscape
-                    unit: 'px', // Use pixels as the unit
-                    format: 'a4' // Set the format to A4
-                });
-        
-                var pageWidth = pdf.internal.pageSize.getWidth();
-                var pageHeight = pdf.internal.pageSize.getHeight();
-        
-                // Loop through each image in the imageQueue
-                imageQueue.forEach(function (image, index) {
-                    // Add a new page for each image
-                    if (index > 0) {
-                        pdf.addPage();
-                    }
-        
-                    // Calculate aspect ratio and set dimensions
-                    var aspectRatio = image.width / image.height;
-                    var maxWidth = pageWidth * 0.8; // 80% of the page width
-                    var maxHeight = maxWidth / aspectRatio;
-        
-                    // Check if the image height exceeds the page height
-                    if (maxHeight > pageHeight) {
-                        maxHeight = pageHeight;
-                        maxWidth = maxHeight * aspectRatio;
-                    }
-        
-                    // Calculate x and y positions to center the image
-                    var x = (pageWidth - maxWidth) / 2;
-                    var y = (pageHeight - maxHeight) / 2;
-        
-                    // Compress the image before adding it to the PDF
-                    var canvas = document.createElement('canvas');
-                    var ctx = canvas.getContext('2d');
-                    canvas.width = image.width;
-                    canvas.height = image.height;
-                    ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
-                    var compressedImage = canvas.toDataURL('image/jpeg', 0.5); // 50% quality JPEG
-        
-                    // Add the image to the PDF with calculated dimensions and positions
-                    pdf.addImage(compressedImage, 'JPEG', x, y, maxWidth, maxHeight);
-                });
-        
-                // Create a Blob object from the PDF output
-                var pdfBlob = pdf.output('blob');
-        
-                // Create a download link for the Blob and trigger a download
-                var link = document.createElement('a');
-                link.href = URL.createObjectURL(pdfBlob);  // Create an object URL for the Blob
-                link.download = 'document.pdf';  // Set the filename for the download
-                link.click();  // Programmatically click the link to trigger the download
-        
-                // Hide the loader after the PDF is generated
-                document.getElementById('loader').style.display = 'none';
-        
-            }, 100); // Use a timeout to allow the loader to display first
-        }
         
         
 
@@ -996,20 +1062,20 @@ function generateAndPreview() {
                 drawingContainer.style.display = 'none'; // Hide drawing container
                 customizationBoxes.forEach(box => box.style.display = 'block'); // Show all other boxes
                 toggleButton.innerText = 'Switch to Drawing';
-                canvas_top.style.zIndex = '-10000';
-                canvas_top.style.display = 'none'; // Hide the canvas in Customization mode
+                 // Hide the canvas in Customization mode
             } else {
                 // Switch to Drawing mode
                 drawingContainer.style.display = 'block'; // Show drawing container
                 customizationBoxes.forEach(box => box.style.display = 'none'); // Hide all other boxes
                 toggleButton.innerText = 'Switch to Customization';
-                canvas_top.style.zIndex = '1';
-                canvas_top.style.display = 'block'; // Show the canvas in Drawing mode
+                // Show the canvas in Drawing mode
             }
         
             isDrawingMode = !isDrawingMode; // Toggle mode state
+            adjustCanvasToContainer();
+
         }
-        
+        document.getElementById("toggle-mode-button").addEventListener("click", toggleMode);
 
 
 
@@ -1030,7 +1096,7 @@ let images = [];
 //let imagesArray = [];
 
 function setCanvasSize() {
-    const drawingContainer = document.querySelector('#shadow-effect');
+    const drawingContainer = document.querySelector('#canvas-container');
     const containerWidth = drawingContainer.clientWidth;
     const containerHeight = drawingContainer.clientHeight;
 
@@ -1056,7 +1122,7 @@ window.addEventListener('resize', setCanvasSize);
 
 // Function to adjust canvas and update slider values based on container size
 function adjustCanvasToContainer() {
-    const shadowEffect = document.getElementById('shadow-effect');
+    const shadowEffect = document.getElementById('canvas-container');
     const canvas = document.getElementById('drawing-canvas');
     
     // Get the container size
@@ -1064,10 +1130,16 @@ function adjustCanvasToContainer() {
     const containerHeight = shadowEffect.clientHeight;
 
     // Adjust the canvas size
+    
     canvas.width = containerWidth;
     canvas.height = containerHeight;
 
     console.log(`Canvas adjusted to: ${canvas.width}x${canvas.height}`);
+    // Check if container is zero, then exit the function to avoid invalid canvas size
+    if (containerWidth === 0 || containerHeight === 0) {
+        console.warn("Container size is 0. Can't adjust canvas.");
+        return;
+    }
 
     // Update the sliders to reflect the new container size as a percentage
     const canvasWidthSlider = document.getElementById('canvas-width');
@@ -1078,15 +1150,15 @@ function adjustCanvasToContainer() {
 }
 
 // Observer for shadow-effect
-const shadowResizeObserver = new ResizeObserver(() => {
-    adjustCanvasToContainer(); // Only updates canvas when shadow-effect resizes
-});
-shadowResizeObserver.observe(document.getElementById('shadow-effect'));
+// const shadowResizeObserver = new ResizeObserver(() => {
+//     adjustCanvasToContainer(); // Only updates canvas when shadow-effect resizes
+// });
+// shadowResizeObserver.observe(document.getElementById('canvas-container'));
 
 
 
-// Initial adjustment
-adjustCanvasToContainer();
+// // Initial adjustment
+// adjustCanvasToContainer();
 
 
 function openColorPicker() {
@@ -1503,6 +1575,57 @@ function drawImages() {
 
    
 }
+
+
+// Color picker button
+document.getElementById("color-picker-button").addEventListener("click", openColorPicker);
+document.getElementById("drawing-color").addEventListener("change", function(event) {
+    changeDrawingColor(event.target.value);
+});
+
+// Shape buttons
+document.getElementById("pen-button").addEventListener("click", function() {
+    shape('pen');
+});
+document.getElementById("eraser-button").addEventListener("click", function() {
+    shape('eraser');
+});
+document.getElementById("line-button").addEventListener("click", function() {
+    shape('line');
+});
+document.getElementById("circle-button").addEventListener("click", function() {
+    shape('circle');
+});
+document.getElementById("rectangle-button").addEventListener("click", function() {
+    shape('rectangle');
+});
+
+// Undo and redo buttons
+document.getElementById("undo-button").addEventListener("click", undo);
+document.getElementById("redo-button").addEventListener("click", redo);
+
+// Save button
+document.getElementById("save-button").addEventListener("click", saveDrawing);
+
+// Upload button
+document.getElementById("upload-button").addEventListener("click", openImageUploadPopup);
+
+// Clear button
+document.getElementById("clear-button").addEventListener("click", clearDrawing);
+
+// Add to paper button
+document.getElementById("add-to-paper-button").addEventListener("click", addDrawingToOutput);
+document.getElementById("add top of paper").addEventListener("click", addImageTop);
+
+
+// Sliders
+document.getElementById("drawing-size").addEventListener("change", function(event) {
+    changeDrawingSize(event.target.value);
+});
+document.getElementById("set-property-button").addEventListener("click", drawImage);
+document.getElementById("set-button").addEventListener("click", setProperties);
+
+
 // // editor script
 
 //  // Function to apply formatting (bold, italic, underline, etc.)
@@ -1669,3 +1792,158 @@ function redirectToSupport() {
 
 
 //
+function createTopImageElement(src) {
+    const img = document.createElement('img');
+    img.src = src;
+    img.className = 'top-img';  // Changed to 'top-img' for distinction
+    img.style.width = '150px';
+    img.style.height = 'auto';
+    img.draggable = true;
+  
+    // Adding drag functionality
+    interact(img)
+      .draggable({
+        listeners: {
+          move(event) {
+            const target = event.target;
+            const dx = event.dx;
+            const dy = event.dy;
+  
+            const rect = target.getBoundingClientRect();
+            const parent = target.parentElement;
+  
+            // Move image by adjusting margin instead of absolute position
+            const currentLeft = parseFloat(target.style.marginLeft) || 0;
+            const currentTop = parseFloat(target.style.marginTop) || 0;
+            target.style.marginLeft = `${currentLeft + dx}px`;
+            target.style.marginTop = `${currentTop + dy}px`;
+          }
+        }
+      })
+      .resizable({
+        edges: { left: true, right: true, bottom: true, top: true },
+        listeners: {
+          move(event) {
+            let { x, y } = event.target.dataset;
+  
+            x = (parseFloat(x) || 0) + event.deltaRect.left;
+            y = (parseFloat(y) || 0) + event.deltaRect.top;
+  
+            Object.assign(event.target.style, {
+              width: `${event.rect.width}px`,
+              height: `${event.rect.height}px`,
+              transform: `translate(${x}px, ${y}px)`
+            });
+  
+            Object.assign(event.target.dataset, { x, y });
+          }
+        }
+      });
+  
+    // Add event listener for border toggle on click
+    img.addEventListener('click', function () {
+      // Add dashed border on click
+      img.style.border = '2px dashed #000';
+    });
+  
+    return img;
+  }
+  
+  function addImageTop() {
+    const canvas = document.getElementById('drawing-canvas');
+    const container = document.getElementById('shadow-effect');  // Container for the top image
+    const dataUrl = canvas.toDataURL('image/png');
+  
+    const img = createTopImageElement(dataUrl);
+    img.style.position = 'absolute';
+    img.style.top = '10px';  // Adjust top position
+    img.style.left = '10px';  // Adjust left position
+    img.style.zIndex = '10';  // Set the z-index for stacking order
+  
+    container.appendChild(img);
+  }
+  
+  // Remove dashed border if clicked anywhere else on the document
+  document.addEventListener('click', function (e) {
+    const images = document.querySelectorAll('.top-img');
+    
+    // If clicked outside the image, remove the border
+    if (!e.target.classList.contains('top-img')) {
+      images.forEach(image => {
+        image.style.border = 'none';  // Remove border from all images
+      });
+    }
+  });
+  
+
+//   const editor = document.getElementById('output-inner-container');
+//   let debounceTimer = null;
+
+//   editor.addEventListener('input', () => {
+//     clearTimeout(debounceTimer);
+//     debounceTimer = setTimeout(renderLatexPreservingCaret, 100);
+//   });
+
+//   function insertCaretSpan() {
+//     const sel = window.getSelection();
+//     if (!sel.rangeCount) return;
+//     const range = sel.getRangeAt(0);
+//     const span = document.createElement('span');
+//     span.id = 'caret-marker';
+//     span.textContent = '\u200b'; // zero-width space
+//     range.insertNode(span);
+//   }
+
+//   function restoreCaretSpan() {
+//     const marker = document.getElementById('caret-marker');
+//     if (!marker) return;
+//     const range = document.createRange();
+//     const sel = window.getSelection();
+//     range.setStartAfter(marker);
+//     range.setEndAfter(marker);
+//     sel.removeAllRanges();
+//     sel.addRange(range);
+//     marker.remove(); // clean up
+//   }
+
+//   function renderLatexPreservingCaret() {
+//     insertCaretSpan();
+
+//     const rawHTML = editor.innerHTML;
+//     const tempDiv = document.createElement('div');
+//     tempDiv.innerHTML = rawHTML;
+
+//     // Walk through text nodes and convert $...$ to KaTeX
+//     const walker = document.createTreeWalker(tempDiv, NodeFilter.SHOW_TEXT);
+//     const textsToConvert = [];
+
+//     while (walker.nextNode()) {
+//       const node = walker.currentNode;
+//       if (node.parentElement.id === 'caret-marker') continue;
+//       const matches = node.textContent.match(/\$(.+?)\$/g);
+//       if (matches) textsToConvert.push(node);
+//     }
+
+//     textsToConvert.forEach(node => {
+//       const parts = node.textContent.split(/(\$.+?\$)/g);
+//       const fragment = document.createDocumentFragment();
+//       parts.forEach(part => {
+//         if (part.startsWith('$') && part.endsWith('$')) {
+//           const expr = part.slice(1, -1);
+//           try {
+//             const span = document.createElement('span');
+//             span.innerHTML = katex.renderToString(expr, { throwOnError: false });
+//             fragment.appendChild(span);
+//           } catch {
+//             fragment.appendChild(document.createTextNode(part));
+//           }
+//         } else {
+//           fragment.appendChild(document.createTextNode(part));
+//         }
+//       });
+//       node.replaceWith(fragment);
+//     });
+
+//     editor.innerHTML = tempDiv.innerHTML;
+//     restoreCaretSpan();
+//   }

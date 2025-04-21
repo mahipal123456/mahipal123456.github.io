@@ -1,5 +1,33 @@
 
-/* new frontend */
+:root {
+  --font-size: 16px;
+  --font-color: #000f64;
+  --letter-spacing: 0px;
+  --word-spacing: 0px;
+  --margin-top: 0px;
+  --margin-left: 0px;
+  --line-height: 1.5;
+  --box-height: 10%;
+  --box-width: 10%;
+  --top-margin-font-size: 14px;
+  --background-color: white;
+  --line-spacing: 1.5em;
+  --left-margin-display: flex;
+  --top-margin-display: flex;
+  --output-left-border: 2px solid #00000066;
+  --top-margin-left-border: 2px solid #00000066;
+  --top-margin-bottom-border: 1px solid #00000066;
+  --subbox-bottom-border: 1px solid #00000066;
+  --background-lines: linear-gradient(#00000066 0.05em, transparent 0.1em);
+  --heading-shadow: linear-gradient(-75deg, rgb(0 0 0 / 40%), rgb(0 0 0 / 0%));
+  --custom-background-image: none;
+  --main-font:'AnotherFont','CustomFont';
+  --math-font:'AnotherFont','CustomFont' , 'KaTeX_Main';
+}
+}/* new frontend */
+
+
+
 
 body {
     font-family: Arial, sans-serif;
@@ -614,27 +642,27 @@ body {
       width: 698px;
     }
    
-    #left-margin{
-      background-size: 100% 20px ;
+    :root {
+      --line-spacing: 20px;
+      --margin-top: 7px;
+      --font-size: 13px;
+      --word-spacing: 10px;
+      --line-height:20px
     }
-    #output-container{
-      background-size: 100% 20px ;
+    
+    #left-margin,
+    #output-container {
+      background-size: 100% var(--line-spacing);
     }
-    #left-margin-in{
-        line-height: 20px;
-        margin-top: 7px;
-        font-size: 13px;
-        word-spacing: 10px;
-
-        
-    }
+    
+    #left-margin-in,
     #output-inner-container {
-        line-height: 20px ;
-        margin-top: 7px;
-        font-size: 13px;
-        word-spacing: 10px;
-
+      line-height: var(--line-height);
+      margin-top: var(--margin-top);
+      font-size: var(--font-size);
+      word-spacing: var(--word-spacing);
     }
+    
     .input-box{
       min-width: 80%;
     }
@@ -654,24 +682,22 @@ body {
     }
     
    
-
-    #left-margin-in{
-        line-height: 23px;
-        margin-top: 7px;
-        font-size: 15px;
-        word-spacing: 10px;
-        
-
-        
+    :root {
+      --line-spacing: 23px;
+      --margin-top: 7px;
+      --font-size: 15px;
+      --word-spacing: 10px;
+      --line-height:23px
     }
+    
+    #left-margin-in,
     #output-inner-container {
-        line-height: 23px ;
-        margin-top: 7px;
-        font-size: 15px;
-        word-spacing: 10px;
-
-        
+      line-height: var(--line-height);
+      margin-top: var(--margin-top);
+      font-size: var(--font-size);
+      word-spacing: var(--word-spacing);
     }
+    
     .input-box{
       min-width: 50%;
     }
@@ -679,12 +705,9 @@ body {
     
       grid-template-columns: repeat( auto-fill, minmax(25%, 1fr) );
     }
-    #output-container{
-      background-size: 100% 23px ;  
-    }
-    #left-margin{
-      background-size: 100% 23px ;  
-      
+    #output-container,
+    #left-margin {
+      background-size: 100% var(--line-spacing);
     }
     .how-it-works-grid {
     
@@ -721,12 +744,7 @@ body {
 
 
 
-#input-container {
 
-padding: 20px;
-
-
-}
 .input-boxes {
 display: flex;
 /* flex-wrap: wrap; */
@@ -855,15 +873,13 @@ background-color: #0056b3;
     box-sizing: border-box;
 
     height: fit-content;
-    min-width: 10%;
-    max-width: 30%;
-    background-image: linear-gradient(#00000066 0.05em, transparent 0.1em);
+    background-image: var(--background-lines);
         height: auto;
 
-    width: 0%;
+    width:var(--box-width);
+    min-width: var(--box-width);
     color: rgb(0, 15, 100);
-    display: flex;
-    /* margin-top: 9px; */
+    display: var(--left-margin-display);    /* margin-top: 9px; */
     /* line-height: 23px; */
     
 }
@@ -879,14 +895,15 @@ background-color: #0056b3;
     
     height:100%;
     overflow-wrap: anywhere;
-    border-left: 2px solid #00000066;
-    border-bottom: 1px solid #00000066;
+    border-left: var(--top-margin-left-border);
+    border-bottom: var(--top-margin-bottom-border);
     
     box-sizing: border-box; /* Add this line */
-    color: rgb(0, 15, 100);
+    color:var(--font-color);
     scrollbar-width: thin;
-    word-spacing: 10px;
-
+    word-spacing: var(--word-spacing);
+    font-size: var(--top-margin-font-size);
+    letter-spacing: var(--letter-spacing);
 
 
     
@@ -897,7 +914,7 @@ background-color: #0056b3;
     width: 100%;
     min-height: 100%;
     height: fit-content;
-    border-left: 2px solid #00000066;
+    border-left: var(--output-left-border);
     white-space: pre-line;
     overflow-wrap: anywhere;
     box-sizing: border-box;
@@ -905,7 +922,7 @@ background-color: #0056b3;
     position: relative;
     display: flex;
     font-family: 'AnotherFont','CustomFont';
-    background-image: linear-gradient(#00000066 0.05em, transparent 0.1em);
+    background-image: var(--background-lines);    
     
     
     
@@ -921,7 +938,10 @@ background-color: #0056b3;
     /* line-height: 23px; */
     overflow: hidden;
     overflow-wrap: anywhere;
-    color: rgb(0, 15, 100);
+    color:var(--font-color);
+    margin-left: var(--margin-left);
+    letter-spacing: var(--letter-spacing);
+    font-family: var(--main-font);
 }
 #content_page{
     display: flex;
@@ -938,6 +958,8 @@ background-color: #0056b3;
 
     height: 100%;
     background-size: contain;
+    background-color: var(--background-color);
+    background-image: var(--custom-background-image);
 
     
     
@@ -946,15 +968,14 @@ background-color: #0056b3;
     display: flex;
     flex-direction: column;
     position: relative;
-    
+    font-family: var(--main-font);
      /* Allow the container to be resized */
     overflow: auto; /* Add scrollbars if content overflows */
     width: 100%;
     height: 100%;
    
-    font-family: 'AnotherFont','CustomFont';
-    background: linear-gradient(-75deg, rgb(0 0 0 / 40%), rgb(0 0 0 / 0%));
-    background-size: contain;
+    background: var(--heading-shadow);
+        background-size: contain;
     scrollbar-width: thin;
 
 }
@@ -966,25 +987,25 @@ background-color: #0056b3;
     box-shadow: rgb(0 0 0 / 21%) 2px -2px 9px 2px;
 }
 #box{
-    display:flex;
+  
+    display: var(--top-margin-display);
     flex-direction: row;
     width: 100%;
-    min-height: 10%;
-    max-height: 30%;
-    height: 10%;
+    
+    height: var(--box-height);
     overflow-y: scroll;
     scrollbar-width: thin;
 
 }
 
 #subbox{
-    width: 10%;
-    min-width: 10%;
-    max-width: 30%;
+    width: var(--box-width);
+    min-width: var(--box-width);
+    display: var(--left-margin-display);
     
     height: 100%;
     
-    border-bottom: 1px solid #00000066;
+    border-bottom: var(--subbox-bottom-border);
     box-sizing: border-box; /* Add this line */
 
 }
@@ -1045,7 +1066,8 @@ background-color: #0056b3;
 
  /* Override katex styles to use the custom font */
 .katex .mathdefault,.katex .op-symbol.small-op,.katex,.katex .mathbf,.katex .delimsizing.size2 ,.katex .mathnormal{
-    font-family: 'AnotherFont','CustomFont' , 'KaTeX_Main';
+  font-family: var(--math-font) !important;
+  /* font-size: calc(var(--font-size) * 2) !important; */
 }
 
 
@@ -1179,12 +1201,10 @@ z-index: 1001;
 
 #drawing-canvas {
     border: 1px solid #000000;
-    display: none;
    
 
 
 }
-
 
 
 
@@ -1218,10 +1238,10 @@ font-size: 12px;
 
 
 /*image container styles*/
-#images-store-container {
+/* #images-store-container {
     display: flex;
     overflow: auto;
-    gap: 10px; /* Adjust the gap between image containers */
+    gap: 10px; 
     margin: 1%;
     justify-content: safe center;
     border: 1px solid #000000;
@@ -1243,9 +1263,9 @@ font-size: 12px;
 
 .preview-image {
     max-width: 90vw;
-    max-height: 50vh;/* Adjust the maximum height of the preview image */
+    max-height: 50vh;
     cursor: pointer;
-}
+} */
 
 
 
@@ -1805,6 +1825,8 @@ details[open] .info-box {
   height: auto;
   width: 100%;
   word-wrap :  break-word;
+  color: var(--font-color);
+  letter-spacing: var(--letter-spacing);
 }
 
 #progressBar {
@@ -1829,7 +1851,152 @@ details[open] .info-box {
 }
 
 
-@keyframes fillProgress {
+@keyframes fillProgress { 
   0% { width: 0%; }
   100% { width: 100%; }
+}
+#canvas-container{ 
+  height: 60vh;
+
+}
+#canvas-tool{ 
+  height: fit-content;
+
+}
+.floating-img {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  width: 150px;
+  height: 100px;
+  cursor: move;
+  z-index: 999;
+}
+
+/* Container for pagination buttons */
+.pagination-container {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 0.8em;
+  margin: 1em auto;
+  padding: 0.5em;
+  max-width: 95%;
+}
+
+/* Shared button styles */
+.pagination-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.4em;
+  padding: 0.5em 1em;
+  font-size: 0.95em;
+  background-color: #f0f0f0;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.2s ease;
+}
+
+/* Hover effect */
+.pagination-btn:hover {
+  background-color: #e0e0e0;
+}
+
+/* Icon inside buttons */
+.pagination-btn img {
+  width: 1em;
+  height: 1em;
+}
+
+/* Page number text */
+.page-number {
+  font-size: 1em;
+  font-weight: 500;
+  padding: 0 0.5em;
+}
+/* Styling for the slider container */
+.slider-container {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  margin: 0.5em 0;
+}
+
+.slider-container input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 8px;
+  background: #ddd;
+  border-radius: 5px;
+  transition: background 0.2s ease-in-out;
+}
+
+.slider-container input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  background: #4CAF50;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background 0.2s ease-in-out;
+}
+
+.slider-container input[type="range"]:focus {
+  outline: none;
+}
+
+.slider-container input[type="range"]:hover {
+  background: #bbb;
+}
+
+.slider-container input[type="range"]:active::-webkit-slider-thumb {
+  background: #45a049;
+}
+
+/* Styling the value next to the slider */
+.slider-container span {
+  font-size: 1rem;
+  font-weight: 500;
+  color: #333;
+}
+#pdf-loader {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5); /* semi-transparent overlay */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  color: white;
+  font-size: 18px;
+  font-family: sans-serif;
+}
+
+/* Simple rotating ring loader */
+.loader {
+  width: 50px;
+  --b: 8px;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: #fff;
+  -webkit-mask:
+    repeating-conic-gradient(#0000 0deg,#000 1deg 70deg,#0000 71deg 90deg),
+    radial-gradient(farthest-side,#0000 calc(100% - var(--b) - 1px),#000 calc(100% - var(--b)));
+  -webkit-mask-composite: destination-in;
+          mask-composite: intersect;
+  animation: l5 1s infinite linear;
+  margin-bottom: 1em;
+}
+
+@keyframes l5 {
+  to { transform: rotate(.5turn); }
 }
