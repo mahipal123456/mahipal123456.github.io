@@ -15,7 +15,7 @@ By using this software, you agree to the following:
    You cannot create derivative works or adapt the code into other software or products.
 
 5. **Commercial Use Allowed**  
-   You may use the software commercially, but you cannot redistribute or sell it.
+   You may use the software features commercially, but you cannot redistribute or sell it.
 
 6. **No Rebranding**  
    You cannot rebrand or use the code as part of another product or service without permission.
