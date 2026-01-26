@@ -1,105 +1,554 @@
-//for page to page 
+// ========================================================
+// GLOBAL STATE
+// ========================================================
 let currentQuill = null;
-let quillContents = ["", ""]; // content for page 0 and 1
 
-const originalPage = document.getElementById("final_page");
-const pages = [originalPage, originalPage.cloneNode(true)];
+let dbPromise = null;
 
-let currentPageIndex = 1;
+let pageOrder = [];
+let currentPageIndex = 0;
 
-// Create a new page (just clone the page)
-function createNewPage() {
-    pages.push(pages[0].cloneNode(true));
-    quillContents.push(""); // Add empty content slot for new page
-    console.log("New page created. Total pages: " + pages.length);
-    return pages[pages.length - 1];
+let notebookMeta = null;
+
+const pageCache = new Map();
+const MAX_CACHE_SIZE = 10;
+
+const titleBox   = document.getElementById("top-margin");
+const sideBox    = document.getElementById("left-margin-in");
+const shadowPage = document.getElementById("shadow-effect");
+
+const outputContainer = document.getElementById("output-container");
+
+// ========================================================
+// INDEXEDDB
+// ========================================================
+let idbScriptPromise = null;
+
+function loadIDB() {
+    // If already loaded, resolve immediately
+    if (window.idb) return Promise.resolve();
+
+    // If loading is already in progress, reuse it
+    if (idbScriptPromise) return idbScriptPromise;
+
+    idbScriptPromise = new Promise((resolve, reject) => {
+        const script = document.createElement("script");
+        script.src = "https://cdn.jsdelivr.net/npm/idb/build/iife/index-min.js";
+        script.async = true;
+
+        script.onload = () => {
+            if (window.idb) resolve();
+            else reject(new Error("idb loaded but not available"));
+        };
+
+        script.onerror = () =>
+            reject(new Error("Failed to load idb library"));
+
+        document.head.appendChild(script);
+    });
+
+    return idbScriptPromise;
 }
 
-function showPage(index, skipSave = false) {
-    // Save current page content
-    if (!skipSave && currentQuill) {
-        quillContents[currentPageIndex] = currentQuill.root.innerHTML;
+async function getDB() {
+    if (dbPromise) return dbPromise;
+        await loadIDB();
+
+    dbPromise = new Promise((resolve, reject) => {
+        const req = indexedDB.open("NotebookDB", 1);
+
+        req.onupgradeneeded = (e) => {
+            const db = e.target.result;
+
+            if (!db.objectStoreNames.contains("pages")) {
+                const store = db.createObjectStore("pages", {
+                    keyPath: "id",
+                    autoIncrement: true
+                });
+                store.createIndex("id", "id", { unique: true });
+            }
+
+            if (!db.objectStoreNames.contains("meta")) {
+                db.createObjectStore("meta", { keyPath: "key" });
+            }
+        };
+
+        req.onsuccess = () => resolve(req.result);
+        req.onerror   = () => reject(req.error);
+    });
+
+    return dbPromise;
+}
+
+async function getNotebookMeta() {
+    const db = await getDB();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction("meta", "readonly");
+        const store = tx.objectStore("meta");
+        const req = store.get("notebook");
+
+        req.onsuccess = () => resolve(req.result || null);
+        req.onerror   = () => reject(req.error);
+    });
+}
+
+async function saveNotebookMeta() {
+    const db = await getDB();
+    notebookMeta = notebookMeta || { key: "notebook", pageOrder };
+    notebookMeta.pageOrder = pageOrder;
+
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction("meta", "readwrite");
+        tx.objectStore("meta").put(notebookMeta).onsuccess = resolve;
+        tx.onerror = reject;
+    });
+}
+
+async function addPageToDB(page) {
+    const db = await getDB();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction("pages", "readwrite");
+        const req = tx.objectStore("pages").add(page);
+
+        req.onsuccess = () => resolve(req.result);
+        req.onerror   = () => reject(req.error);
+    });
+}
+
+async function updatePageInDB(page) {
+    const db = await getDB();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction("pages", "readwrite");
+        tx.objectStore("pages").put(page).onsuccess = resolve;
+        tx.onerror = reject;
+    });
+}
+
+async function getPageFromDB(id) {
+    const db = await getDB();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction("pages", "readonly");
+        const req = tx.objectStore("pages").get(id);
+
+        req.onsuccess = () => resolve(req.result || null);
+        req.onerror   = () => reject(req.error);
+    });
+}
+
+async function deletePageFromDB(id) {
+    const db = await getDB();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction("pages", "readwrite");
+        tx.objectStore("pages").delete(id).onsuccess = resolve;
+        tx.onerror = reject;
+    });
+}
+
+// ========================================================
+// CACHE (LRU)
+// ========================================================
+function cachePage(id, data) {
+    if (pageCache.has(id)) pageCache.delete(id);
+    pageCache.set(id, data);
+
+    if (pageCache.size > MAX_CACHE_SIZE) {
+        const old = pageCache.keys().next().value;
+        pageCache.delete(old);
+    }
+}
+
+function getCachedPage(id) {
+    if (!pageCache.has(id)) return null;
+    const data = pageCache.get(id);
+    pageCache.delete(id);
+    pageCache.set(id, data);
+    return data;
+}
+
+// ========================================================
+// NOTEBOOK INIT
+// ========================================================
+async function initNotebook() {
+    notebookMeta = await getNotebookMeta();
+
+    if (!notebookMeta) {
+        const page = {
+    title: "",
+    side: "",
+    quillDelta: null,
+    quillHTML: "",
+    images: []
+};
+
+        const id = await addPageToDB(page);
+        pageOrder = [id];
+
+        notebookMeta = { key: "notebook", pageOrder };
+        await saveNotebookMeta();
+    } else {
+        pageOrder = notebookMeta.pageOrder || [];
+        if (!pageOrder.length) {
+           const page = {
+    title: "",
+    side: "",
+    quillDelta: null,
+    quillHTML: "",
+    images: []
+};
+
+            const id = await addPageToDB(page);
+            pageOrder = [id];
+            notebookMeta.pageOrder = pageOrder;
+            await saveNotebookMeta();
+        }
     }
 
-    // Swap page DOM
-    const container = document.getElementById("outer-container");
-    container.innerHTML = "";
-    container.appendChild(pages[index]);
-
-    currentPageIndex = index;
-
-    // Load content for new page
-    const saved = quillContents[index] || "";
-    currentQuill.root.innerHTML = saved;
-
-    document.getElementById("pageNumber").innerText = `Page ${index}/${pages.length - 1}`;
+    currentPageIndex = 0;
 }
 
-function initQuill() {
-    currentQuill = new Quill('#mixed-input', {
-        modules: {
-            syntax: true,
-            toolbar: '#toolbar-container',
-        },
-        placeholder: 'type or Paste your only  one page content here ',
-        theme: 'snow',
+// ========================================================
+// DOM ↔ DATA
+// ========================================================
+function collectPageFromDOM(id) {
+    return {
+        id,
+        title: titleBox.innerHTML,
+        side: sideBox.innerHTML,
+
+        // SOURCE OF TRUTH (editing)
+        quillDelta: currentQuill?.getContents() || null,
+
+        // DERIVED CACHE (export only)
+        quillHTML: currentQuill?.root.innerHTML || "",
+
+        images: [...shadowPage.querySelectorAll(".top-img")].map(img => ({
+            src: img.src,
+            style: img.style.cssText
+        }))
+    };
+}
+
+
+function applyPageToDOM(data = {}) {
+    titleBox.innerHTML = data.title || "";
+    sideBox.innerHTML = data.side || "";
+
+    if (currentQuill) {
+    currentQuill.setContents([]); // clear safely
+    if (data.quillDelta) {
+        currentQuill.updateContents(data.quillDelta, Quill.sources.SILENT);
+    }
+}
+
+
+    shadowPage.querySelectorAll(".top-img").forEach(e => e.remove());
+    (data.images || []).forEach(info => {
+    const img = document.createElement("img");
+    img.src = info.src;
+    img.className = "top-img";
+    img.style.cssText = info.style;
+
+    img.dataset.x = img.dataset.x || 0;
+    img.dataset.y = img.dataset.y || 0;
+    if (!img.style.transform) img.style.transform = "translate(0px, 0px)";
+
+    shadowPage.appendChild(img);
+});
+
+    if (data.images && data.images.length > 0) {
+    loadInteract().then(() => {
+        if (!window._interactInitialized) {
+            initInteractForImages();
+            window._interactInitialized = true;
+        }
     });
-
-    currentQuill.on('text-change', () => {
-        convertToHTML();
-    });
-
-    // Store initial page content
-    quillContents[1] = currentQuill.root.innerHTML;
+}
+    const num = document.getElementById("pageNumber");
+    if (num) num.innerText = `${currentPageIndex + 1}/${pageOrder.length}`;
 }
 
-// Navigation
-function creatNewPage() {
-   
-        createNewPage();
-    
-    showPage(pages.length - 1);
+// ========================================================
+// PAGE LOAD / SAVE
+// ========================================================
+async function loadPage(id) {
+    const cached = getCachedPage(id);
+    if (cached) return cached;
+
+    const data = await getPageFromDB(id) || {
+    id,
+    title: "",
+    side: "",
+    quillDelta: null,
+    quillHTML: "",
+    images: []
+};
+
+
+    cachePage(id, data);
+    return data;
 }
-function deleteCurrentPage() {
-    if (pages.length <=2) {
-        alert("At least one page must remain.");
+
+async function saveCurrentPage() {
+    if (!currentQuill || !pageOrder.length) return;
+    const id = pageOrder[currentPageIndex];
+    const page = collectPageFromDOM(id);
+    cachePage(id, page);
+    await updatePageInDB(page);
+}
+
+// ========================================================
+// SHOW PAGE
+// ========================================================
+async function showPage(i, { skipSave = false } = {}) {
+    if (!skipSave) await saveCurrentPage();
+
+    currentPageIndex = i;
+    const id = pageOrder[i];
+    const data = await loadPage(id);
+    applyPageToDOM(data);
+}
+
+// ========================================================
+// CREATE / DELETE
+// ========================================================
+async function createNewPageInternal() {
+    await saveCurrentPage();
+
+    const defaultContent = {
+        title: "",
+        side: "",
+        quillDelta: { ops: [{ insert: "content of page\n" }] },
+        quillHTML: "",
+        images: []
+    };
+
+    const id = await addPageToDB(defaultContent);
+    pageOrder.push(id);
+    await saveNotebookMeta();
+
+    cachePage(id, { id, ...defaultContent });
+
+    currentPageIndex = pageOrder.length - 1;
+    await showPage(currentPageIndex, { skipSave: true });
+}
+
+async function deleteCurrentPage() {
+    const id = pageOrder[currentPageIndex];
+
+    // CASE 1: Only one page → clear content instead of deleting
+    if (pageOrder.length === 1) {
+        const emptyPage = {
+            id,
+            title: "",
+            side: "",
+            quillDelta: { ops: [{ insert: "\n" }] },
+            quillHTML: "",
+            images: []
+        };
+
+        // Update cache + DB
+        cachePage(id, emptyPage);
+        await updatePageInDB(emptyPage);
+
+        // Update UI
+        applyPageToDOM(emptyPage);
+
         return;
     }
 
-    // Remove current page content and DOM reference
-    pages.splice(currentPageIndex, 1);
-    quillContents.splice(currentPageIndex, 1);
+    // CASE 2: More than one page → real delete 
+    await deletePageFromDB(id);
+    pageCache.delete(id);
 
-    // Adjust currentPageIndex if it's out of bounds
-    if (currentPageIndex >= pages.length) {
-        currentPageIndex = pages.length - 1;
+    pageOrder.splice(currentPageIndex, 1);
+    await saveNotebookMeta();
+
+    if (currentPageIndex >= pageOrder.length) {
+        currentPageIndex = pageOrder.length - 1;
     }
 
-    showPage(currentPageIndex,true);
-    console.log("Page deleted. Total pages: " + pages.length);
+    await showPage(currentPageIndex, { skipSave: true });
 }
 
+// ========================================================
+// SCROLL-NAV
+// ========================================================
 function nextPage() {
-    
-    
-    const nextIndex = currentPageIndex + 1;
-    
-    if (nextIndex < pages.length) {
-        showPage(nextIndex);
-    }
+    if (currentPageIndex + 1 < pageOrder.length) showPage(currentPageIndex + 1);
 }
 
 function prevPage() {
-    if (currentPageIndex > 1) {
-        showPage(currentPageIndex - 1);
+    if (currentPageIndex > 0) showPage(currentPageIndex - 1);
+}
+
+// ========================================================
+// LAZY LOAD QUILL WHEN VIEWED
+// ========================================================
+function loadQuill() {
+    return new Promise(resolve => {
+        if (window.Quill && window.QuillTableBetter) {
+            return resolve();
+        }
+
+        // Load Quill
+        const quillJS = document.createElement("script");
+        quillJS.src = "https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js";
+
+        quillJS.onload = () => {
+            // Load table-better AFTER Quill
+            const tableJS = document.createElement("script");
+            tableJS.src = "https://cdn.jsdelivr.net/npm/quill-table-better@1.2.3/dist/quill-table-better.min.js";
+
+            tableJS.onload = () => {
+
+        // -------------------------------
+        // Load KaTeX (LAST)
+        // -------------------------------
+        const katexJS = document.createElement("script");
+        katexJS.src = "https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js";
+
+        katexJS.onload = resolve;
+        document.head.appendChild(katexJS);
+
+        const katexCSS = document.createElement("link");
+        katexCSS.rel = "stylesheet";
+        katexCSS.href = "https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css";
+        document.head.appendChild(katexCSS);
+      };
+
+            document.head.appendChild(tableJS);
+
+            const tableCSS = document.createElement("link");
+            tableCSS.rel = "stylesheet";
+            tableCSS.href = "https://cdn.jsdelivr.net/npm/quill-table-better@1.2.3/dist/quill-table-better.min.css";
+            document.head.appendChild(tableCSS);
+        };
+
+        document.head.appendChild(quillJS);
+
+        const quillCSS = document.createElement("link");
+        quillCSS.rel = "stylesheet";
+        quillCSS.href = "https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css";
+        document.head.appendChild(quillCSS);
+    });
+}
+// ========================================================
+// RENDER SELECTED TEXT AS MATH (ONLY ON BUTTON CLICK)
+// ========================================================
+// ========================================================
+// MATH EMBED (SELECTION → RENDER)
+// ========================================================
+
+
+async function renderSelectedMath(quill) {
+    const range = quill.getSelection();
+    if (!range || range.length === 0) return;
+
+    const latex = quill.getText(range.index, range.length).trim();
+    if (!latex) return;
+
+    // ✅ FORCE INLINE ALWAYS
+    const display = false;
+
+    quill.deleteText(range.index, range.length, Quill.sources.USER);
+
+    quill.insertEmbed(
+        range.index,
+        "math",
+        { latex, display },
+        Quill.sources.USER
+    );
+
+    quill.setSelection(range.index + 1, 0, Quill.sources.SILENT);
+}
+
+function initQuill() {
+    if (currentQuill) return;
+
+    // Register table-better
+    Quill.register(
+        { "modules/table-better": QuillTableBetter },
+        true
+    );
+    const Embed = Quill.import("blots/embed");
+
+    class MathBlot extends Embed {
+        static blotName = "math";
+        static tagName = "span";
+        static className = "ql-math";
+
+        static create(value) {
+            const node = super.create();
+            node.setAttribute("data-latex", value.latex);
+            node.setAttribute("data-display", value.display ? "block" : "inline");
+
+            katex.render(value.latex, node, {
+                displayMode: value.display,
+                throwOnError: false
+            });
+
+            return node;
+        }
+
+        static value(node) {
+            return {
+                latex: node.getAttribute("data-latex"),
+                display: node.getAttribute("data-display") === "block"
+            };
+        }
     }
+
+    Quill.register(MathBlot);
+
+    currentQuill = new Quill("#output-container", {
+        modules: {
+            table: false, // IMPORTANT: disable default table
+             toolbar: {
+            container: "#toolbar-container",
+            handlers: {
+                "render-math": function () {
+                    renderSelectedMath(currentQuill);
+                }
+            }
+        },
+            "table-better": {
+                language: "en_US",
+                menus: ["column", "row", "merge", "table", "cell", "wrap", "copy", "delete"],
+                toolbarTable: true
+            },
+            keyboard: {
+                bindings: QuillTableBetter.keyboardBindings
+            }
+        },
+        theme: "snow",
+        placeholder: "Type or paste your content here"
+    });
+
+    currentQuill.root.id = "output-inner-container";
+    
 }
 
 
+// ========================================================
+// INTERSECTION OBSERVER FOR LAZY LOAD
+// ========================================================
+function setupLazyLoad() {
+    const observer = new IntersectionObserver(async (entries, obs) => {
+        if (entries[0].isIntersecting) {
+            await loadQuill();
+            initQuill();
+            await initNotebook();
+            await showPage(0, { skipSave: true });
 
-// Init
-initQuill();
-showPage(1);
+            obs.disconnect(); // load only once
+        }
+    });
+
+    observer.observe(outputContainer);
+}
+
+document.addEventListener("DOMContentLoaded", setupLazyLoad);
+
 
 window.onload = function () {
     let consent = localStorage.getItem("cookie_consent");
@@ -107,23 +556,36 @@ window.onload = function () {
     if (consent === "granted") {
         enableGA4(); // Load GA4 if already accepted
         loadClarity();
-        document.getElementById("cookie-banner").style.display = "none";
+        hideCookieBanner();
     } else if (consent === "denied") {
-        document.getElementById("cookie-banner").style.display = "none";
+        hideCookieBanner();
     } else {
         setTimeout(function () {
-            document.getElementById("cookie-banner").style.display = "flex";
+            showCookieBanner();
         }, 5000); // Show banner after 5 seconds
     }
 
-    // Show "Manage Cookies" button if consent is given
-    if (consent) {
-        document.getElementById("manage-cookies").style.display = "block";
-    }
+   
 };
 
+// Helper functions for cookie banner animations
+function showCookieBanner() {
+    const banner = document.getElementById("consentx-banner");
+    banner.style.display = "block";
+    
+    // Force reflow to ensure the display change takes effect
+    banner.offsetHeight;
+  
+}
+
+function hideCookieBanner() {
+    const banner = document.getElementById("consentx-banner");
+        banner.style.display = "none";
+        // Match the CSS transition duration
+}
+
 // Accept Cookies and Enable GA4
-function acceptCookies() {
+function acceptConsentX() {
     localStorage.setItem("cookie_consent", "granted");
 
     gtag('consent', 'update', {
@@ -133,16 +595,15 @@ function acceptCookies() {
         'ad_personalization': 'granted'
     });
 
-    gtag('config', 'G-9N9V3HXNYT'); // Now track page views
+    gtag('config', 'G-Z44LLFS6JF'); // Now track page views
     loadClarity();
 
-    document.getElementById("cookie-banner").style.display = "none";
-    document.getElementById("manage-cookies").style.display = "block"; // Show manage button
+    hideCookieBanner();
     console.log("Cookies accepted, GA4 tracking enabled.");
 }
 
 // Deny Cookies and Disable Tracking
-function denyCookies() {
+function denyConsentX() {
     localStorage.setItem("cookie_consent", "denied");
 
     gtag('consent', 'update', {
@@ -152,14 +613,14 @@ function denyCookies() {
         'ad_personalization': 'denied'
     });
 
-    document.getElementById("cookie-banner").style.display = "none";
+    hideCookieBanner();
     document.getElementById("manage-cookies").style.display = "block"; // Show manage button
     console.log("Cookies denied, GA4 tracking disabled.");
 }
 
 // Reopen Cookie Banner for Consent Management
 function manageCookies() {
-    document.getElementById("cookie-banner").style.display = "flex";
+    showCookieBanner();
 }
 function loadClarity() {
     if (!window.clarity) { // Prevent multiple loads
@@ -167,7 +628,7 @@ function loadClarity() {
             c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
             t=l.createElement(r); t.async=1; t.src="https://www.clarity.ms/tag/"+i;
             y=l.getElementsByTagName(r)[0]; y.parentNode.insertBefore(t,y);
-        })(window, document, "clarity", "script", "ork3584d36");
+        })(window, document, "clarity", "script", "utwyyh3a1v");
     }
 }
 // Enable GA4 if user has already accepted cookies
@@ -179,7 +640,7 @@ function enableGA4() {
         'ad_personalization': 'granted'
     });
 
-    gtag('config', 'G-9N9V3HXNYT'); // Start tracking
+    gtag('config', 'G-Z44LLFS6JF'); // Start tracking
     console.log("GA4 Consent Granted and Initialized");
 }
 
@@ -190,12 +651,10 @@ function setLeftMarginHeight() {
     const outputContainer = document.getElementById("output-container");
     const leftMargin = document.getElementById("left-margin");
 
-    // Get the height of the output container (including the overflow content)
     const outputHeight = outputContainer.scrollHeight;
 
     // Set the height of the left margin container to match the output container height
     leftMargin.style.height = outputHeight + "px";
-    // leftmarginin.style.height = outputHeight + "px";
 }
 // Observer for output-container
 const outputResizeObserver = new ResizeObserver(() => {
@@ -205,95 +664,18 @@ outputResizeObserver.observe(document.getElementById('output-container'));
 
 window.addEventListener('resize',  setLeftMarginHeight);
 
-// const quill = new Quill('#mixed-input', {
-//     modules: {
-//       syntax: true, // Enable syntax highlighting
-//       toolbar: '#toolbar-container', // Attach toolbar to the editor
-//     },
-//     placeholder: 'Before start writing here , learn how to use this tool for the best experience ,from our How to Use guide!because Many users struggle to use this properly. and also For the best experience, we recommend using Google Chrome, as some features may not work in other browsers due to their difrente settings. If you notice any issues, please try switching to Chrome for optimal performance', // Placeholder text
-//     theme: 'snow', // Snow theme for Quill
-//   });
-//   quill.on('text-change', function () {
-//     convertToHTML(); // Call your function whenever content changes
-//   });
-// Navigationbar
 
-function toggleNav() {
-    const navList = document.querySelector('nav ul');
-    // Toggle the display of the navbar
-    if (navList.style.display === 'flex') {
-      navList.style.display = 'none';
-    } else {
-      navList.style.display = 'flex';
-    }
-  }
-  
-
-        let imagesArray = [];
-        let isDrawingBeingAdded = false;
-
-        function convertToHTML() {
-            if (isDrawingBeingAdded) return;
-            const mixedInput = document.querySelector('.ql-editor').innerHTML; 
-            const outputContainer = document.getElementById('output-inner-container');
-            
-            // Clear any existing content in the output container
-            while (outputContainer.firstChild) {
-                outputContainer.removeChild(outputContainer.firstChild);
-            }
-            // Utility function to decode HTML entities
-            function decodeHTMLEntities(text) {
-                const textarea = document.createElement('textarea');
-                textarea.innerHTML = text;
-                return textarea.value;
-            }
-            
-            // Split the input into chunks, recognizing LaTeX parts enclosed in $$
-            const chunks = mixedInput.split(/\$(.*?)\$/g);
-            
-            chunks.forEach((chunk, index) => {
-                if (index % 2 === 0) {
-                    // Format spaces by replacing multiple spaces with non-breaking spaces
-                    const formattedChunk = chunk.replace(/  +/g, match => Array(match.length).fill('\u00A0').join(''));
-                    outputContainer.innerHTML += formattedChunk;
-                } else {
-                    // Handle LaTeX content
-                    const katexSpan = document.createElement('span');
-                    try {
-                        // Decode HTML entities in LaTeX chunk before rendering
-                        const rawLatex = decodeHTMLEntities(chunk);
-                        katex.render(rawLatex, katexSpan, { throwOnError: false });
-                        outputContainer.appendChild(katexSpan);
-                    } catch (e) {
-                        console.error('Error rendering LaTeX with KaTeX:', e);
-                        const errorNode = document.createTextNode(chunk);
-                        outputContainer.appendChild(errorNode);
-                    }
-                }
-            });
-            
-            let outputHtml = outputContainer.innerHTML;
-            const imgRegex = /img(\d+)/g;
-            
-            let match;
-            while ((match = imgRegex.exec(outputHtml)) !== null) {
-                const imgIndex = parseInt(match[1]) - 1;
-                if (imagesArray[imgIndex]) {
-                    outputHtml = outputHtml.replace(match[0], imagesArray[imgIndex].outerHTML);
-                }
-            }
-            
-            outputContainer.innerHTML = outputHtml;
-            // setLeftMarginHeight()
-        }
-        
-        
-
-
-
-
-
-        // Define a function to change CSS properties
+function toggleMobileMenu() {
+    const navMenu = document.querySelector('.nav-menu');
+    const toggleButton = document.querySelector('.mobile-menu-toggle');
+    
+    // Toggle the active class on the hamburger button for animation
+    toggleButton.classList.toggle('active');
+    
+    // Toggle the mobile menu visibility
+    navMenu.classList.toggle('active');
+}
+  // Define a function to change CSS properties
         function changeCSSProperty(property, value, elementIds) {
             elementIds.forEach(id => {
                 const element = document.getElementById(id);
@@ -303,114 +685,6 @@ function toggleNav() {
             });
         }
 
-        // Use event delegation to handle input changes
-        // document.addEventListener('input', function(event) {
-        //     var target = event.target;
-        //     if (target.matches('#font-size-input')) {
-        //         changeCSSProperty('fontSize', target.value + 'px', ['output-inner-container','left-margin-in']);
-                
-        //     } else if (target.matches('#font-color-input')) {
-        //         changeCSSProperty('color', target.value, ['output-inner-container','left-margin-in','top-margin']);
-        //     } else if (target.matches('#letter-spacing-input')) {
-        //         changeCSSProperty('letterSpacing', target.value + 'px', ['output-inner-container','left-margin-in','top-margin']);
-        //     } else if (target.matches('#word-spacing-input')) {
-        //         changeCSSProperty('wordSpacing', target.value + 'px', ['output-inner-container','left-margin-in','top-margin']);
-        //     } else if (target.matches('#background-color-input')) {
-        //         changeCSSProperty('backgroundColor', target.value, ['shadow-effect']);
-        //     } else if (target.matches('#margin-top-input')) {
-        //         changeCSSProperty('marginTop', target.value + 'px', ['output-inner-container','left-margin-in']);
-        //     } else if (target.matches('#margin-left-input')) {
-        //         changeCSSProperty('marginLeft', target.value + 'px', ['output-inner-container']);
-        //     } else if (target.matches('#quality-input')) {
-        //         quality = parseFloat(target.value) || 1.0;
-        //     } else if (target.matches('#line-spacing-text-input')) {
-        //         changeCSSProperty('lineHeight', target.value + 'px', ['output-inner-container','left-margin-in']);
-        //     } else if (target.matches('#line-spacing-input')) {
-        //         document.getElementById('left-margin').style.backgroundSize = `100% ${target.value}px`;
-        //         document.getElementById('output-container').style.backgroundSize = `100% ${target.value}px`;
-        //     }else if (target.matches('#height-input')) {
-        //         changeCSSProperty('height', target.value + '%', ['box']);
-        //     }else if (target.matches('#width-input')) {
-        //         changeCSSProperty('width', target.value + '%', ['subbox','left-margin']);
-        //     }else if (target.matches('#top-margin-font-size-input')) {
-        //         changeCSSProperty('fontSize', target.value + 'px', ['top-margin']);
-        //     }
-
-        // });
-
-
-
-        // document.addEventListener('input', handleStyleChange);
-
-        // function handleStyleChange(event) {
-        //     var target = event.target;
-        //     if (target.matches('#font-size-input')) {
-        //         changeCSSProperty('fontSize', target.value + 'px', ['output-inner-container','left-margin-in']);
-                
-        //     } else if (target.matches('#font-color-input')) {
-        //         changeCSSProperty('color', target.value, ['output-inner-container','left-margin-in','top-margin']);
-        //     } else if (target.matches('#letter-spacing-input')) {
-        //         changeCSSProperty('letterSpacing', target.value + 'px', ['output-inner-container','left-margin-in','top-margin']);
-        //     } else if (target.matches('#word-spacing-input')) {
-        //         changeCSSProperty('wordSpacing', target.value + 'px', ['output-inner-container','left-margin-in','top-margin']);
-        //     } else if (target.matches('#background-color-input')) {
-        //         changeCSSProperty('backgroundColor', target.value, ['shadow-effect']);
-        //     } else if (target.matches('#margin-top-input')) {
-        //         changeCSSProperty('marginTop', target.value + 'px', ['output-inner-container','left-margin-in']);
-        //     } else if (target.matches('#margin-left-input')) {
-        //         changeCSSProperty('marginLeft', target.value + 'px', ['output-inner-container']);
-        //     } else if (target.matches('#quality-input')) {
-        //         quality = parseFloat(target.value) || 1.0;
-        //     } else if (target.matches('#line-spacing-text-input')) {
-        //         changeCSSProperty('lineHeight', target.value + 'px', ['output-inner-container','left-margin-in']);
-        //     } else if (target.matches('#line-spacing-input')) {
-        //         document.getElementById('left-margin').style.backgroundSize = `100% ${target.value}px`;
-        //         document.getElementById('output-container').style.backgroundSize = `100% ${target.value}px`;
-        //     }else if (target.matches('#height-input')) {
-        //         changeCSSProperty('height', target.value + '%', ['box']);
-        //     }else if (target.matches('#width-input')) {
-        //         changeCSSProperty('width', target.value + '%', ['subbox','left-margin']);
-        //     }else if (target.matches('#top-margin-font-size-input')) {
-        //         changeCSSProperty('fontSize', target.value + 'px', ['top-margin']);
-        //     }
-        // }
-        // function applyAllInputStyles() {
-        //     const inputs = [
-        //         document.getElementById('font-size-input'),
-        //         document.getElementById('font-color-input'),
-        //         document.getElementById('letter-spacing-input'),
-        //         document.getElementById('word-spacing-input'),
-        //         document.getElementById('background-color-input'),
-        //         document.getElementById('margin-top-input'),
-        //         document.getElementById('margin-left-input'),
-        //         document.getElementById('quality-input'),
-        //         document.getElementById('line-spacing-text-input'),
-        //         document.getElementById('line-spacing-input'),
-        //         document.getElementById('height-input'),
-        //         document.getElementById('width-input'),
-        //         document.getElementById('top-margin-font-size-input'),
-        //     ];
-        
-        //     inputs.forEach(input => {
-        //         if (input) handleStyleChange({ target: input });
-        //     });
-        // }
-        // function applyAllChanges() {
-        //     applyAllInputStyles();         // existing styles
-        //     changeFontFamily()
-        //     toggleLeftMargin(false)
-        //     toggleTopMargin(false);
-        //     toggleLeftBorder(false);
-        //     toggleTopBorder(false);
-        //     toggleBackground(false);
-        //     Shadow(false);
-        //     changeBackgroundImage()
-
-
-        // }
-        // document.getElementById('nextBtn').addEventListener('click', applyAllChanges);
-        // document.getElementById('prevBtn').addEventListener('click', applyAllChanges);
-        
         // Utility function to set CSS variable values
 function setCSSVariable(variable, value) {
     document.documentElement.style.setProperty(`--${variable}`, value);
@@ -563,20 +837,7 @@ function setCSSVariable(variable, value) {
         }
         
         
-        let isShadowOn = true;
-
-        function Shadow() {
-           
-                isShadowOn = !isShadowOn;
-            
-
-            const shadowValue = isShadowOn
-                ? 'linear-gradient(-75deg, rgb(0 0 0 / 40%), rgb(0 0 0 / 0%))'
-                : 'none';
-
-            setCSSVariable('heading-shadow', shadowValue);
-        }
-
+        
 
 
         function changeBackgroundImage() {
@@ -603,7 +864,6 @@ function setCSSVariable(variable, value) {
         }
         
    
-        // Function to apply the custom font to MathJax elements
 
         let customFontUploaded = false;
         let uploadedFontFamily = '';
@@ -631,7 +891,7 @@ function setCSSVariable(variable, value) {
         function changeFontFamily() {
           const select = document.getElementById('font-family-select');
           const font = select.value;
-          customFontUploaded = false;           // clear any previous upload
+          customFontUploaded = false;        
           uploadedFontFamily = '';
           document.getElementById('font-file-input').value = ''; 
           applyFontVariables(font);
@@ -696,1077 +956,1099 @@ function setCSSVariable(variable, value) {
           const baseFont = customFontUploaded ? uploadedFontFamily : select.value;
           applyFontVariables(baseFont);
         }
-        
+   (function () {
+  const picker = document.getElementById("fontPicker");
+  const select = document.getElementById("font-family-select");
 
+  // ==============================
+  // DEFAULT FONT ON PAGE LOAD
+  // ==============================
+  const firstFont = picker.querySelector(".font-option");
+
+  if (firstFont) {
+    select.value = firstFont.dataset.font;
+    changeFontFamily(); // APPLY DEFAULT FONT
+  }
+
+  // ==============================
+  // CLICK HANDLER
+  // ==============================
+  picker.addEventListener("click", (e) => {
+    const option = e.target.closest(".font-option");
+    if (!option) return;
+
+    picker.querySelectorAll(".font-option")
+      .forEach(o => o.classList.remove("active"));
+
+    option.classList.add("active");
+    select.value = option.dataset.font;
+    changeFontFamily();
+  });
+})();
+(function () {
+  const options = document.querySelectorAll(".font-option");
+
+  const observer = new IntersectionObserver(
+    (entries, obs) => {
+      entries.forEach(entry => {
+        if (!entry.isIntersecting) return;
+
+        const el = entry.target;
+
+        // Apply font ONLY ONCE
+        el.style.fontFamily = el.dataset.font;
+
+        // Stop observing after first load
+        obs.unobserve(el);
+      });
+    },
+    {
+      root: null,        // viewport
+      rootMargin: "0px",
+      threshold: 0.1     // 10% visible
+    }
+  );
+
+  options.forEach(el => observer.observe(el));
+})();
 
 document.addEventListener('DOMContentLoaded', changeFontFamily);
 
-
-// //to cntrol screeshot scroll problem 
-// const container = document.getElementById('content_page');
-// const lineSpacingInput = document.getElementById('line-spacing-input');
-// let isButtonScroll = false; // Flag to track button-based scroll
-
-// // Function to get the scroll step value
-// function getScrollStep() {
-//     const value = parseInt(lineSpacingInput.value, 10);
-    
-//     // Use 20 as the default if the screen width is less than 900px, otherwise use 23
-//     const defaultStep = window.innerWidth < 900 ? 20 : 23;
-    
-//     return isNaN(value) ? defaultStep : value;
-// }
-
-// // Add a scroll event listener
-// container.addEventListener('scroll', () => {
-//     if (!isButtonScroll){
-//   const step = getScrollStep(); // Get the current scroll step
-//   const scrollTop = container.scrollTop;
-
-//   // Calculate the nearest step
-//   const nearestStep = Math.round(scrollTop / step) * step;
-
-//   // Set the container's scrollTop to the nearest step
-//   if (scrollTop !== nearestStep) {
-//     container.scrollTo({
-//       top: nearestStep,
-//     });
-//   }
-// }
-// });
-
-
-
-        var imageQueue = []; // Array to store generated images
-        var quality = 2.0; // Initial quality value
-
-        // Global variable to track if the alert has been shown
-let highQualityAlertShown = false;
-
-function changeQuality() {
-    var qualityInput = document.getElementById('quality-input').value;
-    var quality = parseFloat(qualityInput) || 1.0;
-
-    // Check if the quality value exceeds the maximum limit
-    if (quality > 20) {
-        alert('Maximum quality is 20.');
-        quality = 20; // Set quality to maximum allowed value
-        highQualityAlertShown = false; // Reset the flag when exceeding max quality
-    } 
-    // Check if the quality value is high
-    else if (quality > 5) {
-        if (!highQualityAlertShown) { // Show alert only once
-            alert('High quality may take generating image up to 1 minute.');
-            highQualityAlertShown = true; // Set the flag to true after showing the alert
-        }
-    } else {
-        // Reset the flag if the quality is 5 or lower
-        highQualityAlertShown = false;
+// ========================================================
+// SCRIPT LOADER
+// ========================================================
+function loadScript(src) {
+  return new Promise((resolve, reject) => {
+    if (document.querySelector(`script[src="${src}"]`)) {
+      resolve(); // Already loaded
+      return;
     }
 
-    // Optional: Update quality in a global or higher scope variable if needed
-    // qualityVariable = quality; // Uncomment and define qualityVariable elsewhere if needed
+    const script = document.createElement("script");
+    script.src = src;
+    script.onload = resolve;
+    script.onerror = reject;
+    document.body.appendChild(script);
+  });
 }
 
-        
+// ========================================================
+// =====================================================================
+//  GLOBAL HANDWRITING SETTINGS
+// =====================================================================
+const HW = {
+    enabled: true,
 
-// function generateAndPreview() {
-//     // Select the canvas element by its ID
-//     const canvas = document.getElementById('drawing-canvas');
-//     const button = document.getElementById('generate_image');
-    
-//     // Change the button text to "Generating..."
-//     button.textContent = "Generating...";
-//     button.disabled = true; // Disable the button during processing
+    // ======================
+    // LINE LEVEL
+    // ======================
+    lineSlopeEnabled: true,
+    lineSlopeMax: 2,
 
-//     // Set the border to 'none' dynamically
-//     canvas.style.border = 'none';
+    lineSpacingNoiseEnabled: true,
+    lineSpacingNoiseMax: 3,
 
-//     // Perform the shadow effect if the checkbox is checked
-//     const shadowBox = document.getElementById('shadow').checked;
-//     if (shadowBox) {
-//         const randomAngle = Math.floor(Math.random() * 360);
-//         const target = document.getElementById('heading_page');
-//         target.style.background = `linear-gradient(${randomAngle}deg, rgb(0 0 0 / 40%), rgb(0 0 0 / 0%))`;
-//     }
+    lineFontNoiseEnabled: true,
+    lineFontNoiseMax: 2, // %
 
-//     var textElement = document.getElementById('images-store-container-text');
-//     if (textElement) {
-//         // Remove the text element
-//         textElement.remove();
-//     }
+    // ======================
+    // WORD LEVEL
+    // ======================
+    wordBaselineEnabled: true,
+    wordBaselineMax: 2,
 
-//     var containerWrapper = document.getElementById('shadow-effect');
-//     var imageQueueContainer = document.getElementById('images-store-container');
+    wordRotationEnabled: true,
+    wordRotationMax: 3,
 
-//     // Use html2canvas to capture the containerWrapper content
-//     html2canvas(containerWrapper, { scale: quality }).then(function (canvas) {
-//         // Create a new image object from the canvas
-//         var newImage = new Image();
-//         newImage.src = canvas.toDataURL();
+    wordSpacingNoiseEnabled: true,
+    wordSpacingNoiseMax: 3,
 
-//         // Create a container for the new image and its download button
-//         var imageContainer = document.createElement('div');
-//         imageContainer.classList.add('image-container');
+letterSpacingNoiseEnabled: true,
+letterSpacingNoiseMax: 0.6, // px
+    // ======================
+    // INK & PAPER
+    // ======================
+    inkBlurEnabled: true,
+    inkBlurAmount: 0.3,
 
-//         // Create a cross sign for removing the image
-//         var crossSign = document.createElement('div');
-//         crossSign.textContent = '✖';
-//         crossSign.classList.add('buttontype_2');
-//         crossSign.onclick = function () {
-//             removeImage(imageContainer, newImage);
-//         };
+    inkFlowEnabled: true,
+    inkFlowAmount: 0.9,
 
-//         // Create a download button for the new image
-//         var downloadButton = document.createElement('button');
-//         downloadButton.textContent = 'Download Image ' + imageQueue.length;
-//         downloadButton.classList.add('buttontype_2');
-//         downloadButton.onclick = function () {
-//             downloadImage(newImage, 'container_image_' + imageQueue.length + '.png');
-//         };
+    inkShadowEnabled: true,
+    inkShadowAmount: 1,
 
-//         // Create a preview image for the new image
-//         var previewImage = new Image();
-//         previewImage.src = canvas.toDataURL();
-//         previewImage.classList.add('preview-image');
-//         previewImage.onclick = function () {
-//             openImageInNewTab(newImage.src);
-//         };
+    paperTextureEnabled: true,
+    paperTextureStrength: 0.18,
 
-//         // Create a container for the move left and move right buttons
-//         var moveButtonsContainer = document.createElement('div');
-//         moveButtonsContainer.classList.add('button-container');
+    paperShadowEnabled: true,
+    paperShadowStrength: 0.35
+};
+function updateHandwritingSettings() {
 
-//         // Create buttons for moving left and right
-//         var moveLeftButton = document.createElement('button');
-//         moveLeftButton.textContent = '←';
-//         moveLeftButton.classList.add('buttontype_2');
-//         moveLeftButton.onclick = function () {
-//             moveImageLeft(imageContainer);
-//         };
+    HW.enabled = document.getElementById("toggle-handwriting").checked;
 
-//         var moveRightButton = document.createElement('button');
-//         moveRightButton.textContent = '→';
-//         moveRightButton.classList.add('buttontype_2');
-//         moveRightButton.onclick = function () {
-//             moveImageRight(imageContainer);
-//         };
+    // -------- LINE LEVEL --------
+    HW.lineSlopeEnabled =
+        document.getElementById("toggle-line-slope").checked;
+    HW.lineSlopeMax =
+        parseFloat(document.getElementById("line-slope-input").value);
 
-//         // Append the move buttons to the container
-//         moveButtonsContainer.appendChild(moveLeftButton);
-//         moveButtonsContainer.appendChild(moveRightButton);
+    HW.lineSpacingNoiseEnabled =
+        document.getElementById("toggle-line-spacing-noise").checked;
+    HW.lineSpacingNoiseMax =
+        parseFloat(document.getElementById("line-spacing-noise-input").value);
 
-//         // Append the preview image, move buttons, cross sign, and download button to the container
-//         imageContainer.appendChild(crossSign);
-//         imageContainer.appendChild(previewImage);
-//         imageContainer.appendChild(moveButtonsContainer); // Append the move buttons container
-//         imageContainer.appendChild(downloadButton);
+    HW.lineFontNoiseEnabled =
+        document.getElementById("toggle-line-font-noise").checked;
+    HW.lineFontNoiseMax =
+        parseFloat(document.getElementById("line-font-noise-input").value);
 
-//         // Append the container to the queue container
-//         imageQueueContainer.appendChild(imageContainer);
+    // -------- WORD LEVEL --------
+    HW.wordBaselineEnabled =
+        document.getElementById("toggle-word-baseline").checked;
+    HW.wordBaselineMax =
+        parseFloat(document.getElementById("word-baseline-input").value);
 
-//         // Add the new image to the queue
-//         imageQueue.push(newImage);
+    HW.wordRotationEnabled =
+        document.getElementById("toggle-word-rotation").checked;
+    HW.wordRotationMax =
+        parseFloat(document.getElementById("word-rotation-input").value);
 
-//         // Add a shadow effect to the image container
-//         imageContainer.style.boxShadow = '2px 2px 5px rgba(0, 0, 0, 0.5)';
-        
-//         // Re-enable the button after the image is generated
-//         button.textContent = "Generate Image";
-//         button.disabled = false; // Re-enable the button after processing
-//     });
+    HW.wordSpacingNoiseEnabled =
+        document.getElementById("toggle-word-spacing-noise").checked;
+    HW.wordSpacingNoiseMax =
+        parseFloat(document.getElementById("word-spacing-noise-input").value);
 
-//     // Set the border back to '1px solid black' after processing
-//     canvas.style.border = '1px solid black';
-// }
-function handleDownload(value) {
-    if (value === "image") {
-      downloadCurrentPageImage();
-    } else if (value === "pdf") {
-      generatePDFfromPages();
+        HW.letterSpacingNoiseEnabled =
+    document.getElementById("toggle-letter-spacing-noise").checked;
+
+HW.letterSpacingNoiseMax =
+    parseFloat(document.getElementById("letter-spacing-noise-input").value);
+
+    // -------- INK & PAPER --------
+    HW.inkBlurEnabled =
+        document.getElementById("toggle-ink-blur").checked;
+    HW.inkBlurAmount =
+        parseFloat(document.getElementById("ink-blur-input").value);
+
+    HW.inkFlowEnabled =
+        document.getElementById("toggle-ink-flow").checked;
+    HW.inkFlowAmount =
+        parseFloat(document.getElementById("ink-flow-input").value);
+
+    HW.inkShadowEnabled =
+        document.getElementById("toggle-ink-shadow").checked;
+    HW.inkShadowAmount =
+        parseFloat(document.getElementById("ink-shadow-input").value);
+
+    HW.paperTextureEnabled =
+        document.getElementById("toggle-paper-texture").checked;
+    HW.paperTextureStrength =
+        parseFloat(document.getElementById("paper-texture-input").value);
+
+    HW.paperShadowEnabled =
+        document.getElementById("toggle-paper-shadow").checked;
+    HW.paperShadowStrength =
+        parseFloat(document.getElementById("paper-shadow-input").value);
+}
+function updateHandwritingUI() {
+
+    // LINE LEVEL
+    document.getElementById("line-slope-value").innerText =
+        document.getElementById("line-slope-input").value + "°";
+
+    document.getElementById("line-spacing-noise-value").innerText =
+        document.getElementById("line-spacing-noise-input").value + "px";
+
+    document.getElementById("line-font-noise-value").innerText =
+        document.getElementById("line-font-noise-input").value + "%";
+
+    // WORD LEVEL
+    document.getElementById("word-baseline-value").innerText =
+        document.getElementById("word-baseline-input").value + "px";
+
+    document.getElementById("word-rotation-value").innerText =
+        document.getElementById("word-rotation-input").value + "°";
+
+    document.getElementById("word-spacing-noise-value").innerText =
+        document.getElementById("word-spacing-noise-input").value + "px";
+
+    document.getElementById("letter-spacing-noise-value").innerText =
+    document.getElementById("letter-spacing-noise-input").value + "px";
+
+
+    // INK & PAPER
+    document.getElementById("ink-blur-value").innerText =
+        document.getElementById("ink-blur-input").value + "px";
+
+    document.getElementById("ink-flow-value").innerText =
+        document.getElementById("ink-flow-input").value;
+
+    document.getElementById("ink-shadow-value").innerText =
+        document.getElementById("ink-shadow-input").value + "px";
+
+    document.getElementById("paper-texture-value").innerText =
+        document.getElementById("paper-texture-input").value;
+
+    document.getElementById("paper-shadow-value").innerText =
+        document.getElementById("paper-shadow-input").value;
+}
+function initHandwritingControls() {
+
+    const controls = document.querySelectorAll(`
+        #toggle-handwriting,
+
+        #toggle-line-slope, #line-slope-input,
+        #toggle-line-spacing-noise, #line-spacing-noise-input,
+        #toggle-line-font-noise, #line-font-noise-input,
+
+        #toggle-word-baseline, #word-baseline-input,
+        #toggle-word-rotation, #word-rotation-input,
+        #toggle-word-spacing-noise, #word-spacing-noise-input,
+
+        #toggle-ink-blur, #ink-blur-input,
+        #toggle-ink-flow, #ink-flow-input,
+        #toggle-ink-shadow, #ink-shadow-input,
+
+        #toggle-paper-texture, #paper-texture-input,
+        #toggle-paper-shadow, #paper-shadow-input,
+        #toggle-letter-spacing-noise, #letter-spacing-noise-input
+
+    `);
+
+    controls.forEach(el => {
+        el.addEventListener("input", () => {
+            updateHandwritingSettings();
+            updateHandwritingUI();
+        });
+        el.addEventListener("change", () => {
+            updateHandwritingSettings();
+            updateHandwritingUI();
+        });
+    });
+
+    updateHandwritingSettings();
+    updateHandwritingUI();
+}
+
+document.addEventListener("DOMContentLoaded", initHandwritingControls);
+
+// =====================================================================
+//  APPLY HANDWRITING EFFECT (WORD + CHARACTER + INK EFFECTS)
+// =====================================================================
+// ============================================================
+//  FAST 4× OPTIMIZED HANDWRITING EFFECT
+// ============================================================
+
+let PAPER_TEXTURE_URL = null;
+
+function getPaperTexture(opacity) {
+  if (PAPER_TEXTURE_URL) return PAPER_TEXTURE_URL;
+
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="200" height="200">
+      <defs>
+        <filter id="paper">
+          <feTurbulence type="fractalNoise" baseFrequency="0.15" numOctaves="5"/>
+          <feColorMatrix type="saturate" values="0"/>
+          <feComponentTransfer>
+            <feFuncA type="linear" slope="${opacity}"/>
+          </feComponentTransfer>
+        </filter>
+      </defs>
+      <rect width="100%" height="100%" filter="url(#paper)"/>
+    </svg>
+  `;
+
+  PAPER_TEXTURE_URL =
+    `url('data:image/svg+xml;utf8,${encodeURIComponent(svg)}')`;
+  return PAPER_TEXTURE_URL;
+}
+function isInsideMath(node) {
+  let el = node.parentNode;
+  while (el) {
+    if (
+      el.classList?.contains("katex") ||
+      el.classList?.contains("ql-math") ||
+      el.classList?.contains("katex-mathml")
+    ) {
+      return true;
     }
-  
-    // Reset selection to default
-    document.getElementById('download_options').value = '';
+    el = el.parentNode;
   }
-  
-async function generatePDFfromPages() {
-    const loader = document.getElementById('pdf-loader');
-    loader.style.display = 'flex'; // Show loader
+  return false;
+}
 
-    
-    const { jsPDF } = window.jspdf;
-    const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'px',
-        format: 'a4'
-    });
+function applyHandwritingEffect(root) {
+    if (!HW.enabled) return;
+    const anyEffectEnabled =
+  // LINE
+  HW.lineSlopeEnabled ||
+  HW.lineSpacingNoiseEnabled ||
+  HW.lineFontNoiseEnabled ||
 
-    for (let i = 1; i < pages.length; i++) {
-        showPage(i);
-        await waitForRender();
+  // WORD
+  HW.wordBaselineEnabled ||
+  HW.wordRotationEnabled ||
+  HW.wordSpacingNoiseEnabled ||
+  HW.letterSpacingNoiseEnabled ||
 
-        const canvas = await html2canvas(document.getElementById('shadow-effect'), {
-            scale: 2, // You can try reducing to 1.5 or 1 for speed
-            useCORS: true,
-            allowTaint: true
-        });
+  // INK
+  HW.inkBlurEnabled ||
+  HW.inkFlowEnabled ||
+  HW.inkShadowEnabled ||
 
-        const imgData = canvas.toDataURL('image/png');
+  // PAPER
+  HW.paperTextureEnabled ||
+  HW.paperShadowEnabled;
 
-        // Add image to PDF (scale to fit A4)
-        const pdfWidth = pdf.internal.pageSize.getWidth();
-        const pdfHeight = pdf.internal.pageSize.getHeight();
 
-        pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+if (!anyEffectEnabled) return;
 
-        // Avoid adding an extra page at the end
-        if (i < pages.length - 1) {
-            pdf.addPage();
-        }
-        
+
+    // --------------------------------------------------
+    // Deterministic random (stable across runs)
+    // --------------------------------------------------
+    if (!window.HW_RAND) {
+        const a = new Float32Array(8000);
+        for (let i = 0; i < a.length; i++) a[i] = Math.random();
+        window.HW_RAND = a;
+        window.HW_RAND_INDEX = 0;
     }
 
-    pdf.save('AllPages.pdf');
-    loader.style.display = 'none';
-    const closeBtn = document.querySelector('.close-btn');
+    function R() {
+        if (HW_RAND_INDEX >= HW_RAND.length) HW_RAND_INDEX = 0;
+        return HW_RAND[HW_RAND_INDEX++];
+    }
 
-    showMainPopup(); // Show main popup after 30 seconds
-    setTimeout(() => {
-        closeBtn.style.display = 'block';
-      }, 10000);
-}
+    // --------------------------------------------------
+    // --------------------------------------------------
+    const rootStyle = getComputedStyle(document.documentElement);
 
-function waitForRender() {
-    return new Promise(resolve => {
-        requestAnimationFrame(() => {
-            requestAnimationFrame(resolve);
-        });
-    });
-}
-
-function downloadCurrentPageImage() {
-    const loader = document.getElementById('loader');
-    loader.style.display = 'block'; // Show the loader at the beginning
-    const canvas = document.getElementById('drawing-canvas');
-    const containerWrapper = document.getElementById('shadow-effect');
-    const scale = (window.devicePixelRatio > 1 ? window.devicePixelRatio : 1) * quality;
-
-    html2canvas(containerWrapper, {
-        scale: scale, // Ensure sharp images
-        useCORS: true,
-        willReadFrequently: true,
-    }).then(function (canvas) {
-        const imageData = canvas.toDataURL('image/png');
-
-        // Create an anchor element to trigger the download
-        const link = document.createElement('a');
-        link.href = imageData;
-        link.download = 'current_page_image.png';
-
-        // Try to trigger download (works on PC but may not on mobile)
-        if (link.download) {
-            link.click(); // Try to download automatically
-        } else {
-            // Fallback for mobile where automatic download may not work
-            window.open(imageData, '_blank'); // Open the image in a new tab for mobile
-        }
-        loader.style.display = 'none'; // Hide the loader once the image is ready for download
-    });
-}
-
-    // Function to process all pages
     
 
-// Now, simply call the function to process all pages
+    // --------------------------------------------------
+    // Walk TEXT NODES ONLY
+    // --------------------------------------------------
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    const nodes = [];
+
+    while (walker.nextNode()) {
+  const node = walker.currentNode;
+  if (!node.nodeValue.trim()) continue;
+  if (isInsideMath(node)) continue; // 🚫 skip math
+  nodes.push(node);
+}
+
+    // --------------------------------------------------
+    // Process each text node as a logical block
+    // --------------------------------------------------
+    nodes.forEach(textNode => {
+        const text = textNode.nodeValue;
+        const parent = textNode.parentNode;
+const parentStyle = getComputedStyle(parent);
+
+const BASE = {
+  fontSize: parseFloat(parentStyle.fontSize),
+
+  // line-height can be "normal" → handle safely
+  lineHeight: (() => {
+    const lh = parentStyle.lineHeight;
+    if (lh === "normal") {
+      return parseFloat(parentStyle.fontSize) * 1.3;
+    }
+    return parseFloat(lh);
+  })(),
+
+  // letter-spacing can be "normal"
+  letterSpacing: (() => {
+    const ls = parentStyle.letterSpacing;
+    if (ls === "normal") return 0;
+    return parseFloat(ls);
+  })(),
+
+  // word-spacing can be "normal"
+  wordSpacing: (() => {
+    const ws = parentStyle.wordSpacing;
+    if (ws === "normal") return 0;
+    return parseFloat(ws);
+  })()
+};
+
+        const blockSpan = document.createElement("span");
+        blockSpan.className = "hw-text-block";
+        blockSpan.style.display = "inline";
+
+        // ---------------- LINE-LEVEL NOISE ----------------
+
+        // Line slope (visual only)
+        const slope = HW.lineSlopeEnabled
+            ? (R() * 2 - 1) * HW.lineSlopeMax
+            : 0;
+
+        // Line spacing noise (relative to real line-height)
+        if (HW.lineSpacingNoiseEnabled) {
+            blockSpan.style.lineHeight =
+                `${BASE.lineHeight + R() * HW.lineSpacingNoiseMax}px`;
+        }
+
+        // Font size noise (relative to real font size)
+        if (HW.lineFontNoiseEnabled) {
+            blockSpan.style.fontSize =
+                `${BASE.fontSize + (R() * 2 - 1) * HW.lineFontNoiseMax}px`;
+        }
+
+        // --------------------------------------------------
+        // WORD PROCESSING
+        // --------------------------------------------------
+       const parts = text.split(/(\s+)/);
+let wordIndex = 0;
+
+parts.forEach(part => {
+    if (!part.trim()) {
+        blockSpan.appendChild(document.createTextNode(part));
+        return;
+    }
+
+    const w = document.createElement("span");
+    w.className = "hw-word";
+    w.textContent = part;
+    w.style.display = "inline-block";
+
+    // =====================================================
+    // TRANSFORM (baseline + rotation)
+    // =====================================================
+    let transforms = [];
+
+    if (HW.lineSlopeEnabled || HW.wordBaselineEnabled) {
+        const baseY = slope * wordIndex;
+        const wobble = HW.wordBaselineEnabled
+            ? (R() * 2 - 1) * HW.wordBaselineMax
+            : 0;
+
+        transforms.push(`translateY(${baseY + wobble}px)`);
+    }
+
+    if (HW.wordRotationEnabled) {
+        const skew = (R() * 2 - 1) * HW.wordRotationMax;
+        transforms.push(`skewX(${skew}deg)`);
+    }
+
+    if (transforms.length) {
+        w.style.transform = transforms.join(" ");
+    }
+
+    // =====================================================
+    // WORD SPACING
+    // =====================================================
+    if (HW.wordSpacingNoiseEnabled) {
+        const NEG_RATIO = 0.25;
+        const wordGapNoise =
+            (R() * (1 + NEG_RATIO) - NEG_RATIO) * HW.wordSpacingNoiseMax;
+
+        w.style.marginRight = `${wordGapNoise}px`;
+    }
+
+    // =====================================================
+    // LETTER SPACING
+    // =====================================================
+    if (HW.letterSpacingNoiseEnabled) {
+        const letterNoise = R() * HW.letterSpacingNoiseMax;
+        w.style.letterSpacing = `${BASE.letterSpacing + letterNoise}px`;
+    }
+
+    // =====================================================
+    // INK EFFECTS
+    // =====================================================
+    if (HW.inkBlurEnabled) {
+        w.style.filter = `blur(${HW.inkBlurAmount}px)`;
+    }
+
+    if (HW.inkFlowEnabled) {
+        w.style.opacity =
+            1 - HW.inkFlowAmount * 0.15 + R() * 0.1;
+    }
+
+    if (HW.inkShadowEnabled) {
+        w.style.textShadow =
+            `${R() * HW.inkShadowAmount}px ` +
+            `${R() * HW.inkShadowAmount}px ` +
+            `0 rgba(0,0,0,0.25)`;
+    }
+
+    blockSpan.appendChild(w);
+    wordIndex++;
+});
+
+
+        parent.replaceChild(blockSpan, textNode);
+    });
+   const page = root.querySelector("#heading_page");
+if (!page) return;
+
+/* --------------------------------
+   RESET (important)
+-------------------------------- */
+page.style.backgroundImage = "";
+page.style.backgroundSize = "";
+page.style.backgroundBlendMode = "";
+
+/* --------------------------------
+   BUILD BACKGROUND STACK
+-------------------------------- */
+const backgrounds = [];
+const sizes = [];
+
+/* -------- PAPER SHADOW -------- */
+if (HW.paperShadowEnabled) {
+    const s = HW.paperShadowStrength;
+    const angle = (R() * 150 - 75) * (R() < 0.5 ? -1 : 1);
+
+    backgrounds.push(`
+        linear-gradient(${angle}deg,
+            rgba(0,0,0, ${1.0 * s}) 0%,
+            rgba(0,0,0, ${0.85 * s}) 10%,
+            rgba(0,0,0, ${0.55 * s}) 25%,
+            rgba(0,0,0, ${0.28 * s}) 50%,
+            rgba(0,0,0, ${0.15 * s}) 70%,
+            rgba(0,0,0, 0) 100%
+        )
+    `);
+
+    sizes.push("100% 100%");
+}
+
+/* -------- PAPER TEXTURE -------- */
+if (HW.paperTextureEnabled) {
+    backgrounds.push(getPaperTexture(HW.paperTextureStrength));
+    sizes.push("300px 300px");
+}
+
+/* --------------------------------
+   APPLY OR CLEAR
+-------------------------------- */
+if (backgrounds.length) {
+    page.style.backgroundImage = backgrounds.join(",");
+    page.style.backgroundSize = sizes.join(",");
+    page.style.backgroundBlendMode = "multiply";
+} else {
+    // No effect enabled → clean paper
+    page.style.background = "";
+}
+
+            // --------------------------------------------------
+        // APPLY INK EFFECTS TO MATH (BLOCK LEVEL ONLY)
+        // --------------------------------------------------
+        const mathNodes = root.querySelectorAll(".ql-math, .katex");
+
+        mathNodes.forEach(node => {
+        // INK BLUR (visual only)
+        if (HW.inkBlurEnabled) {
+            node.style.filter =
+            `blur(${HW.inkBlurAmount * (0.6 + R() * 0.4)}px)`;
+        }
+
+        // INK FLOW (opacity noise)
+        if (HW.inkFlowEnabled) {
+            node.style.opacity =
+            1 - HW.inkFlowAmount * 0.15 + R() * 0.08;
+        }
+
+        // INK SHADOW
+        if (HW.inkShadowEnabled) {
+            node.style.textShadow =
+            `${R() * HW.inkShadowAmount}px ${R() * HW.inkShadowAmount}px 0 rgba(0,0,0,0.25)`;
+        }
+        });
+
+}
 
 
 
-        // function generatePDF() {
-        //     // Check if there are any images in the imageQueue
-        //     if (imageQueue.length === 0) {
-        //         alert("There are no images to generate a PDF. Please add images before generating.");
-        //         return; // Exit the function if there are no images
-        //     }
-        
-        //     // Show the loader before starting the PDF generation
-        //     document.getElementById('loader').style.display = 'block';
-        
-        //     // Delay the PDF generation by a few milliseconds to allow the loader to show up
-        //     setTimeout(function () {
-        //         // Create a new jsPDF instance
-        //         var { jsPDF } = jspdf;
-        //         var pdf = new jsPDF({
-        //             orientation: 'landscape', // Set the orientation to landscape
-        //             unit: 'px', // Use pixels as the unit
-        //             format: 'a4' // Set the format to A4
-        //         });
-        
-        //         var pageWidth = pdf.internal.pageSize.getWidth();
-        //         var pageHeight = pdf.internal.pageSize.getHeight();
-        
-        //         // Loop through each image in the imageQueue
-        //         imageQueue.forEach(function (image, index) {
-        //             // Add a new page for each image
-        //             if (index > 0) {
-        //                 pdf.addPage();
-        //             }
-        
-        //             // Calculate aspect ratio and set dimensions
-        //             var aspectRatio = image.width / image.height;
-        //             var maxWidth = pageWidth * 0.8; // 80% of the page width
-        //             var maxHeight = maxWidth / aspectRatio;
-        
-        //             // Check if the image height exceeds the page height
-        //             if (maxHeight > pageHeight) {
-        //                 maxHeight = pageHeight;
-        //                 maxWidth = maxHeight * aspectRatio;
-        //             }
-        
-        //             // Calculate x and y positions to center the image
-        //             var x = (pageWidth - maxWidth) / 2;
-        //             var y = (pageHeight - maxHeight) / 2;
-        
-        //             // Compress the image before adding it to the PDF
-        //             var canvas = document.createElement('canvas');
-        //             var ctx = canvas.getContext('2d');
-        //             canvas.width = image.width;
-        //             canvas.height = image.height;
-        //             ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
-        //             var compressedImage = canvas.toDataURL('image/jpeg', 0.5); // 50% quality JPEG
-        
-        //             // Add the image to the PDF with calculated dimensions and positions
-        //             pdf.addImage(compressedImage, 'JPEG', x, y, maxWidth, maxHeight);
-        //         });
-        
-        //         // Save the PDF
-        //         pdf.save('document.pdf');
-        
-        //         // Hide the loader after the PDF is generated
-        //         document.getElementById('loader').style.display = 'none';
-        
-        //     }, 0); // Use a timeout to allow the loader to display first
-        // }
-        
-        
+
+
+
+let captureRoot = null;
+function destroyCaptureRoot() {
+  if (!captureRoot) return;
+  captureRoot.remove();
+  captureRoot = null;
+}
+
+function initCaptureRoot() {
+  destroyCaptureRoot();
+
+  const original = document.getElementById("shadow-effect");
+  const rect = original.getBoundingClientRect();
+
+  // EXACT deep clone
+  captureRoot = original.cloneNode(true);
+
+  // Freeze layout — but DO NOT change structure
+  captureRoot.style.position = "fixed";
+  captureRoot.style.left = "-100000px";
+  captureRoot.style.top = "0";
+  captureRoot.style.width = rect.width + "px";
+  captureRoot.style.height = rect.height + "px";
+  captureRoot.style.margin = "0";
+  captureRoot.style.transform = "none";
+  captureRoot.style.boxSizing = "border-box";
+
+  document.body.appendChild(captureRoot);
+}
+async function renderPageForExport(pageData) {
+  // Title
+  captureRoot.querySelector("#top-margin").innerHTML =
+    pageData.title || "";
+
+  // Side
+  captureRoot.querySelector("#left-margin-in").innerHTML =
+    pageData.side || "";
+
+  // Main content — EXACT container
+  captureRoot.querySelector("#output-inner-container").innerHTML =
+    pageData.quillHTML || "";
+
+  // Images — EXACT behavior as live UI
+  captureRoot.querySelectorAll(".top-img").forEach(e => e.remove());
+
+  (pageData.images || []).forEach(info => {
+    const img = document.createElement("img");
+    img.className = "top-img";
+    img.src = info.src;
+    img.style.cssText = info.style;
+
+    // IMPORTANT: append to SAME parent as original UI
+    captureRoot.appendChild(img);
+  });
+
+  // Effects ONLY on clone
+  applyHandwritingEffect(captureRoot);
+
+  await waitForRender();
+}
+
+async function captureExportCanvas() {
+  const canvas = await html2canvas(captureRoot, {
+    scale: 1.5,
+    backgroundColor: null,
+    useCORS: true,
+    removeContainer: false, // REQUIRED
+
+    // ================================
+    // HARD DOM ISOLATION
+    // ================================
+    ignoreElements: (element) => {
+      // Keep capture root itself
+      if (element === captureRoot) return false;
+
+      // Keep children of capture root
+      if (captureRoot.contains(element)) return false;
+
+      // Keep parents of capture root (html → body → wrappers)
+      if (element.contains(captureRoot)) return false;
+
+      // Keep required HEAD nodes
+      if (
+        element.nodeName === "HEAD" ||
+        element.nodeName === "STYLE" ||
+        element.nodeName === "META" ||
+        element.nodeName === "LINK"
+      ) {
+        return false;
+      }
+
+      // Ignore EVERYTHING else
+      return true;
+    }
+  });
+
+  // ================================
+  // 🔥 HARD CLEANUP OF html2canvas IFRAMES
+  // ================================
+  document.querySelectorAll(".html2canvas-container").forEach(el => {
+    try {
+      const iframe = el.contentWindow;
+      if (iframe && iframe.document) {
+        el.src = "about:blank";
+        iframe.document.open();
+        iframe.document.write("");
+        iframe.document.close();
+        iframe.close();
+      }
+    } catch (_) {}
+    el.remove();
+  });
+
+  // ================================
+  // FINAL STYLE CLEANUP
+  // ================================
+  
+  return canvas;
+}
+
+
+
+const ProgressLoader = {
+  show(title = "Working…") {
+    document.getElementById("progress-overlay").classList.remove("hidden");
+    document.getElementById("progress-title").innerText = title;
+    this.update(0, "Starting…");
+  },
+
+  update(percent, text, subtext = "") {
+    document.getElementById("progress-fill").style.width = `${percent}%`;
+    document.getElementById("progress-text").innerText = text;
+    document.getElementById("progress-subtext").innerText = subtext;
+  },
+
+  hide() {
+    document.getElementById("progress-overlay").classList.add("hidden");
+  }
+};
+
+// ========================================================
+// DOWNLOAD HANDLER (UNCHANGED LOGIC, HOOKED TO NEW CAPTURE)
+// ========================================================
+async function handleDownload(value) {
+    await saveCurrentPage();
+  if (value === "image") {
+    await loadScript("https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js");
+    downloadCurrentPageImage();
+  } 
+  else if (value === "all-images") {
+    await loadScript("https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js");
+    downloadAllPagesAsImages();
+  }
+
+  // Reset select dropdown
+  document.getElementById('download_options').value = '';
+}
+
+// ========================================================
+// PDF EXPORT (NOW USES captureShadowWithEffect)
+// ========================================================
+async function downloadAllPagesAsImages() {
+  ProgressLoader.show("Exporting Images");
+
+  initCaptureRoot();
+
+  const total = pageOrder.length;
+
+  for (let i = 0; i < total; i++) {
+    const percent = Math.round((i / total) * 100);
+
+    ProgressLoader.update(
+      percent,
+      `Rendering page ${i + 1} of ${total}`,
+      "Capturing page as image"
+    );
+
+    const pageData = await loadPage(pageOrder[i]);
+    await renderPageForExport(pageData);
+
+    const canvas = await captureExportCanvas();
+
+    // PNG preferred for text quality (change to JPEG if size matters)
+    const blob = await new Promise(r => canvas.toBlob(r, "image/png"));
+    const url = URL.createObjectURL(blob);
+
+    // Trigger download immediately (no accumulation)
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `page_${i + 1}.png`;
+    a.click();
+    URL.revokeObjectURL(url);
+    canvas.width = canvas.height = 0;
+
+ 
+    await new Promise(r => setTimeout(r, 0));
+  }
+
+  ProgressLoader.update(100, "Completed", "All images downloaded");
+  ProgressLoader.hide();
+
+  const closeBtn = document.querySelector('.modern-close-btn');
+  if (typeof showMainPopup === "function") {
+    showMainPopup();
+  }
+  if (closeBtn) {
+    setTimeout(() => {
+      closeBtn.style.display = 'flex';
+    }, 10000);
+  }
+}
+
+
+// ========================================================
+// WAIT FOR RENDER (KEEPING YOUR ORIGINAL HELPER)
+// ========================================================
+function waitForRender() {
+  return new Promise(resolve => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(resolve);
+    });
+  });
+}
+
+// ========================================================
+// SINGLE PAGE IMAGE EXPORT (USES SAME CAPTURE LOGIC)
+// ========================================================
+async function downloadCurrentPageImage() {
+  ProgressLoader.show("Exporting Page Image");
+
+  ProgressLoader.update(30, "Preparing page");
+
+  initCaptureRoot();
+
+  const pageId = pageOrder[currentPageIndex];
+  const pageData = await loadPage(pageId);
+
+  ProgressLoader.update(60, "Rendering content");
+
+  await renderPageForExport(pageData);
+  const canvas = await captureExportCanvas();
+
+  ProgressLoader.update(90, "Finalizing image");
+
+    const blob = await new Promise(r => canvas.toBlob(r, "image/png"));
+    const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "current_page_image.png";
+  a.click();
+
+  ProgressLoader.hide();
+}
+
+        let fabricLoaded = false;
+        let fabricLoadingPromise = null;
+
+        function loadFabricJS() {
+            if (fabricLoaded) return Promise.resolve();
+            if (fabricLoadingPromise) return fabricLoadingPromise;
+
+            fabricLoadingPromise = new Promise((resolve, reject) => {
+                const script = document.createElement("script");
+                script.src = "https://cdn.jsdelivr.net/npm/fabric@5.2.4/dist/fabric.min.js";
+                script.async = true;
+
+                script.onload = () => {
+                    fabricLoaded = true;
+                    resolve();
+                };
+
+                script.onerror = reject;
+                document.head.appendChild(script);
+            });
+
+            return fabricLoadingPromise;
+        }
 
         let isDrawingMode = false; // Start with customization mode
+        let canvas = null;
+
         function toggleMode() {
             const drawingContainer = document.getElementById('drawing-controls');
             const customizationBoxes = document.querySelectorAll('.input-box:not(#drawing-controls)');
             const toggleButton = document.getElementById('toggle-mode-button');
-            const canvas_top = document.getElementById('drawing-canvas');
-        
+
             if (isDrawingMode) {
                 // Switch to Customization mode
-                drawingContainer.style.display = 'none'; // Hide drawing container
-                customizationBoxes.forEach(box => box.style.display = 'block'); // Show all other boxes
+                drawingContainer.style.display = 'none';
+                customizationBoxes.forEach(box => box.style.display = 'block');
                 toggleButton.innerText = 'Switch to Drawing';
-                 // Hide the canvas in Customization mode
+                isDrawingMode = false;
             } else {
-                // Switch to Drawing mode
-                drawingContainer.style.display = 'block'; // Show drawing container
-                customizationBoxes.forEach(box => box.style.display = 'none'); // Hide all other boxes
-                toggleButton.innerText = 'Switch to Customization';
-                // Show the canvas in Drawing mode
-            }
-        
-            isDrawingMode = !isDrawingMode; // Toggle mode state
-            adjustCanvasToContainer();
+                // Switch to Drawing mode (lazy load Fabric)
+                loadFabricJS().then(() => {
+                    drawingContainer.style.display = 'block';
+                    customizationBoxes.forEach(box => box.style.display = 'none');
+                    toggleButton.innerText = 'Switch to Customization';
 
+                    if (!canvas) initFabricCanvas(); // init only once
+                    isDrawingMode = true;
+                });
+            }
         }
+
         document.getElementById("toggle-mode-button").addEventListener("click", toggleMode);
 
 
+function initFabricCanvas() {
+    if (canvas) return;
+    canvas = new fabric.Canvas('drawing-canvas', { preserveObjectStacking:true, allowTouchScrolling:true });
 
+    let currentTool = 'pen';
+    const colorInput = document.getElementById('drawing-color');
+    const widthInput = document.getElementById('drawing-size');
 
-            
-        const canvas = document.getElementById('drawing-canvas');
-const ctx = canvas.getContext('2d');
-let isDrawing = false;
-let startX, startY, lastX, lastY;
-let drawingColor = '#000f64';
-let drawingSize = 4;
+    let undoStack = [], redoStack = [];
+    let isDrawingShape = false, shapeStart = null, currentShape = null;
 
-let selectedTool = 'pen';
-let undoStack = [];
-let redoStack = [];
-let snapshot;
-let images = [];
-//let imagesArray = [];
+    function configureBrush() {
+      const brush = new fabric.PencilBrush(canvas);
+      brush.width = parseInt(widthInput.value,10) || 4;
+      brush.color = colorInput.value || '#000000';
+      canvas.freeDrawingBrush = brush;
+    }
 
-function setCanvasSize() {
-    const drawingContainer = document.querySelector('#canvas-container');
-    const containerWidth = drawingContainer.clientWidth;
-    const containerHeight = drawingContainer.clientHeight;
+    configureBrush();
 
-    const canvasWidthSlider = document.getElementById('canvas-width');
-    const canvasHeightSlider = document.getElementById('canvas-height');
+    function saveState() {
+      redoStack = [];
+      try {
+        const jsonStr = JSON.stringify(canvas.toJSON(['selectable']));
+        if (!undoStack.length || undoStack[undoStack.length-1] !== jsonStr) undoStack.push(jsonStr);
+        if (undoStack.length>50) undoStack.shift();
+      } catch(e){ console.warn(e); }
+    }
 
-    const canvasWidth = canvasWidthSlider.valueAsNumber * containerWidth / 100;
-    const canvasHeight = canvasHeightSlider.valueAsNumber * containerHeight / 100;
+    let isRestoring = false;
+    function restoreState(jsonStr) {
+      try {
+        isRestoring = true;
+        canvas.clear();
+        canvas.loadFromJSON(JSON.parse(jsonStr), ()=>{
+          if(currentTool==='select') setObjectsSelectable(true); else setObjectsSelectable(false);
+          canvas.renderAll();
+          isRestoring=false;
+          setTool('pen'); // switch back to pen after undo/redo/clear
+        });
+      } catch(e){ console.error(e); isRestoring=false; }
+    }
 
-    canvas.width = canvasWidth;
-    canvas.height = canvasHeight;
-}
+    // canvas.on('object:added',()=>{if(!isRestoring) saveState();});
+    canvas.on('object:modified',()=>{if(!isRestoring) saveState();});
+    canvas.on('object:removed',()=>{if(!isRestoring) saveState();});
 
+    function setObjectsSelectable(flag){
+      canvas.discardActiveObject();
+      canvas.forEachObject(obj=>{ obj.selectable=!!flag; obj.evented=!!flag; });
+      canvas.requestRenderAll();
+    }
 
-// Call setCanvasSize initially to set the canvas size when the page loads
-setCanvasSize();
+    function eraseAt(point) {
+      // remove only on click, not hover
+      const objs = canvas.getObjects().slice().reverse();
+      let removed = false;
+      for(let obj of objs){
+        const br = obj.getBoundingRect(true,true);
+        if(point.x>=br.left && point.x<=br.left+br.width && point.y>=br.top && point.y<=br.top+br.height){
+          canvas.remove(obj); removed=true; break;
+        }
+      }
+      if(removed && !isRestoring) saveState();
+    }
 
-// Add event listeners to update the canvas size when the sliders are adjusted
-document.getElementById('canvas-width').addEventListener('input', setCanvasSize);
-document.getElementById('canvas-height').addEventListener('input', setCanvasSize);
-window.addEventListener('resize', setCanvasSize);
+    function setTool(tool){
+      currentTool=tool;
+      isDrawingShape=false; shapeStart=null; currentShape=null;
+      canvas.isDrawingMode=(tool==='pen');
+      if(tool==='select'){ canvas.selection=true; setObjectsSelectable(true); }
+      else{ canvas.selection=false; setObjectsSelectable(false); }
+      if(tool==='pen') configureBrush();
+      canvas.discardActiveObject(); canvas.requestRenderAll();
+    }
 
-
-// Function to adjust canvas and update slider values based on container size
-function adjustCanvasToContainer() {
-    const shadowEffect = document.getElementById('canvas-container');
-    const canvas = document.getElementById('drawing-canvas');
+    // Add the missing select button handler
+    document.getElementById('tool-select').onclick=()=>setTool('select');
+    document.getElementById('pen-button').onclick=()=>setTool('pen');
+    document.getElementById('eraser-button').onclick=()=>setTool('eraser');
+    document.getElementById('line-button').onclick=()=>setTool('line');
+    document.getElementById('rectangle-button').onclick=()=>setTool('rect');
+    document.getElementById('circle-button').onclick=()=>setTool('circle');
     
-    // Get the container size
-    const containerWidth = shadowEffect.clientWidth;
-    const containerHeight = shadowEffect.clientHeight;
-
-    // Adjust the canvas size
+    document.getElementById('undo-button').onclick=()=>{ if(undoStack.length>1){ redoStack.push(undoStack.pop()); restoreState(undoStack[undoStack.length-1]); } };
+    document.getElementById('redo-button').onclick=()=>{ if(redoStack.length>0){ const n=redoStack.pop(); undoStack.push(n); restoreState(n); } };
+    document.getElementById('clear-button').onclick=()=>{ canvas.clear(); saveState(); setTool('pen'); };
     
-    canvas.width = containerWidth;
-    canvas.height = containerHeight;
-
-    console.log(`Canvas adjusted to: ${canvas.width}x${canvas.height}`);
-    // Check if container is zero, then exit the function to avoid invalid canvas size
-    if (containerWidth === 0 || containerHeight === 0) {
-        console.warn("Container size is 0. Can't adjust canvas.");
-        return;
-    }
-
-    // Update the sliders to reflect the new container size as a percentage
-    const canvasWidthSlider = document.getElementById('canvas-width');
-    const canvasHeightSlider = document.getElementById('canvas-height');
-
-    canvasWidthSlider.value = (canvas.width / containerWidth) * 100;
-    canvasHeightSlider.value = (canvas.height / containerHeight) * 100;
-}
-
-// Observer for shadow-effect
-// const shadowResizeObserver = new ResizeObserver(() => {
-//     adjustCanvasToContainer(); // Only updates canvas when shadow-effect resizes
-// });
-// shadowResizeObserver.observe(document.getElementById('canvas-container'));
-
-
-
-// // Initial adjustment
-// adjustCanvasToContainer();
-
-
-function openColorPicker() {
-    var colorInput = document.getElementById("drawing-color");
-    colorInput.click();
-}
-
-// function openDrawingContainer() {
-//     alert('Before drawing and adding images to the page, ensure that your page parameters are fixed, like page size and line spacing. Changing these after adding images may distort your page structure');
-//     document.getElementById('drawing_popup').style.display = 'flex';
-//     setCanvasSize();
-// }
-
-// function closePopup() {
-//     document.getElementById('drawing_popup').style.display = 'none';
-// }
-
-function changeDrawingColor(color) {
-    drawingColor = color;
-}
-// Add an event listener to the color input element
-document.getElementById("drawing-color").addEventListener('input', function(event) {
-    changeDrawingColor(event.target.value);
-});
-function shape(shape) {
-    selectedTool = shape;
-}
-
-function changeDrawingSize(size) {
-    drawingSize = size;
-}
-
-function clearDrawing() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    undoStack = [];
-    redoStack = [];
-    images = [];
-}
-
-function undo() {
-    if (undoStack.length > 0) {
-        redoStack.push(canvas.toDataURL());
-        const lastAction = undoStack.pop();
-        const img = new Image();
-        img.onload = function() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.drawImage(img, 0, 0);
-        };
-        img.src = lastAction;
-    }
-}
-
-function redo() {
-    if (redoStack.length > 0) {
-        undoStack.push(canvas.toDataURL());
-        const lastAction = redoStack.pop();
-        const img = new Image();
-        img.onload = function() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.drawImage(img, 0, 0);
-        };
-        img.src = lastAction;
-    }
-}
-
-function saveDrawing() {
-    const imgData = canvas.toDataURL();
-    const link = document.createElement('a');
-    link.href = imgData;
-    link.download = 'drawing.png';
-    link.click();
-}
-
-const startDraw = (e) => {
-    e.preventDefault(); // Prevent default touch events
-    isDrawing = true;
-    const { offsetX, offsetY } = getPointerPos(e);
-    startX = offsetX;
-    startY = offsetY;
-    ctx.beginPath();
-    ctx.lineWidth = drawingSize;
-    ctx.strokeStyle = drawingColor;
-    ctx.lineCap = 'round';
-    snapshot = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    undoStack.push(canvas.toDataURL());
-    redoStack = [];
-}
-
-function drawShape(x, y) {
-    if (!isDrawing) return;
-    ctx.putImageData(snapshot, 0, 0);
-
-    if (selectedTool === 'pen') {
-        ctx.globalCompositeOperation = 'source-over';
-        ctx.strokeStyle = drawingColor;
-        ctx.lineTo(x, y);
-        ctx.stroke();
-    } else if (selectedTool === 'eraser') {
-        ctx.globalCompositeOperation = 'destination-out';
-        ctx.strokeStyle = '#ffffff';
-        ctx.lineTo(x, y);
-        ctx.stroke();
-    } else if (selectedTool === 'line') {
-        ctx.beginPath();
-        ctx.moveTo(startX, startY);
-        ctx.lineTo(x, y);
-        ctx.stroke();
-    } else if (selectedTool === 'rectangle') {
-        ctx.beginPath();
-        const width = x - startX;
-        const height = y - startY;
-        ctx.rect(startX, startY, width, height);
-        ctx.stroke();
-    } else if (selectedTool === 'circle') {
-        ctx.beginPath();
-        const radius = Math.sqrt(Math.pow(x - startX, 2) + Math.pow(y - startY, 2));
-        ctx.arc(startX, startY, radius, 0, 2 * Math.PI);
-        ctx.stroke();
-    }
-    ctx.globalCompositeOperation = 'source-over';
-}
-
-function addDrawingToOutput() {
-    isDrawingBeingAdded = true;
-    const imgData = canvas.toDataURL();
-    const img = new Image();
-    const imageCount = imagesArray.length + 1;
-    const imgId = 'image' + imageCount;
-    img.src = imgData;
-    img.id = imgId;
-    imagesArray.push(img);
-    img.onload = function() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        document.getElementById('drawing_popup').style.display = 'none';
-        document.getElementById('popup-output').style.display = 'flex';
-        const target = document.querySelector('#mixed-input .ql-editor');
-        if (target && target.lastChild) {
-            target.lastChild.innerHTML += 'img' + imageCount;
-        }
-        
+    document.getElementById("add top of paper").addEventListener("click", addImageTop);
+    document.getElementById('save-button').onclick=()=>{
+      const dataURL=canvas.toDataURL({format:'png'});
+      const link=document.createElement('a'); link.href=dataURL; link.download='canvas.png'; link.click();
     };
-    setTimeout(() => {
-        isDrawingBeingAdded = false; // Reset flag after adding drawing
-    }, 50);
+
+    document.getElementById('color-picker-button').onclick=()=>{ colorInput.click(); };
+    colorInput.onchange=()=>{ if(canvas.freeDrawingBrush) canvas.freeDrawingBrush.color=colorInput.value; };
+    widthInput.oninput=()=>{ if(canvas.freeDrawingBrush) canvas.freeDrawingBrush.width=parseInt(widthInput.value,10)||4; };
+
+    function pointerToCanvas(e){ const p=canvas.getPointer(e.e||e); return {x:p.x,y:p.y}; }
+
+    canvas.on('mouse:down', function(o){
+      const p=pointerToCanvas(o);
+      if(currentTool==='eraser') eraseAt(p);
+      if(currentTool==='line'||currentTool==='rect'||currentTool==='circle'){
+        isDrawingShape=true; shapeStart=p;
+        if(currentTool==='line') currentShape=new fabric.Line([p.x,p.y,p.x,p.y],{stroke:colorInput.value,strokeWidth:parseInt(widthInput.value,10)||2,selectable:false});
+        else if(currentTool==='rect') currentShape=new fabric.Rect({left:p.x,top:p.y,originX:'left',originY:'top',width:0,height:0,fill:'transparent',stroke:colorInput.value,strokeWidth:parseInt(widthInput.value,10)||2,selectable:false});
+        else if(currentTool==='circle') currentShape=new fabric.Circle({left:p.x,top:p.y,originX:'center',originY:'center',radius:1,fill:'transparent',stroke:colorInput.value,strokeWidth:parseInt(widthInput.value,10)||2,selectable:false});
+        if(currentShape) canvas.add(currentShape);
+      }
+    });
+
+    canvas.on('mouse:move', function(o){
+      const p=pointerToCanvas(o);
+      if(!isDrawingShape||!currentShape) return;
+      if(currentTool==='line') currentShape.set({x2:p.x,y2:p.y});
+      else if(currentTool==='rect'){
+        const l=Math.min(p.x,shapeStart.x),t=Math.min(p.y,shapeStart.y),w=Math.abs(p.x-shapeStart.x),h=Math.abs(p.y-shapeStart.y);
+        currentShape.set({left:l,top:t,width:w,height:h});
+      }
+      else if(currentTool==='circle'){
+        const dx=p.x-shapeStart.x,dy=p.y-shapeStart.y,r=Math.sqrt(dx*dx+dy*dy)/2,cx=(p.x+shapeStart.x)/2,cy=(p.y+shapeStart.y)/2;
+        currentShape.set({left:cx,top:cy,radius:r});
+      }
+      currentShape.setCoords(); canvas.requestRenderAll();
+    });
+
+    canvas.on('mouse:up', function(){
+      if(isDrawingShape&&currentShape){ currentShape.set({selectable:false}); currentShape.setCoords(); saveState(); }
+      isDrawingShape=false; currentShape=null; shapeStart=null;
+    });
+
+    canvas.on('path:created', function(opt){ opt.path.set({selectable:currentTool==='select'}); saveState(); });
+    canvas.on('object:selected', function(){ if(currentTool!=='select') canvas.discardActiveObject(); });
+
+    window.addEventListener('resize', ()=>{ canvas.setWidth(canvas.upperCanvasEl.parentNode.clientWidth); canvas.setHeight(canvas.upperCanvasEl.parentNode.clientHeight); canvas.calcOffset(); });
+
+    window.addEventListener('keydown', e=>{ if((e.ctrlKey||e.metaKey)&&e.key==='z') document.getElementById('undo-button').click(); if((e.ctrlKey||e.metaKey)&&(e.key==='y'||(e.shiftKey&&e.key==='Z'))) document.getElementById('redo-button').click(); if((e.key==='Delete'||e.key==='Backspace')&&canvas.getActiveObject()&&currentTool==='select') canvas.remove(canvas.getActiveObject()); });
+
+    setTool('pen');
+    window._fabricCanvas=canvas;
+
+    function setCanvasSize() {
+    if (!canvas) return;
+
+    const container = document.getElementById("canvas-container");
+    if (!container) return;
+
+    const widthPct  = document.getElementById("canvas-width").valueAsNumber;
+    const heightPct = document.getElementById("canvas-height").valueAsNumber;
+
+    const w = container.clientWidth  * widthPct  / 100;
+    const h = container.clientHeight * heightPct / 100;
+
+    canvas.setWidth(w);
+    canvas.setHeight(h);
+    canvas.calcOffset();
+    canvas.requestRenderAll();
 }
 
-// function setProperties() {
-//     const floatInput = document.getElementById('floatInput').value;
-//     const widthInput = document.getElementById('widthInput').value;
-//     const img = imagesArray[imagesArray.length - 1];
+document.getElementById("canvas-width").addEventListener("input", setCanvasSize);
+document.getElementById("canvas-height").addEventListener("input", setCanvasSize);
+setCanvasSize()
 
-//     // Line height used for text (ensure this matches the actual line height of the container's text)
-//     const lineSpacingInput = document.getElementById('line-spacing-text-input').value;
-//     // const lineHeight = lineSpacingInput ? parseInt(lineSpacingInput) : 23;
-//     let lineHeight;
-
-//     if (window.innerWidth <= 900) {  // Check if the screen width is for mobile
-//     lineHeight = lineSpacingInput ? lineSpacingInput : 20;  // Use 18px for mobile if no input is provided
-//     } else {
-//     lineHeight = lineSpacingInput ? lineSpacingInput : 23;  // Use 23px for desktop if no input is provided
-//     }
-
-//     // Function to set the image's width and height, ensuring height is a multiple of line height
-//     function adjustImageDimensions() {
-//         const outputContainer = document.getElementById('output-inner-container');
-//         const containerWidth = outputContainer.clientWidth; // Get the current container width
-//         const imgWidthPercent = parseFloat(widthInput); // Convert width input from percentage to a number
-//         const imgWidthInPixels = (imgWidthPercent / 100) * containerWidth; // Calculate width in pixels
-        
-//         // Get the image's natural aspect ratio (for quality preservation)
-//         const aspectRatio = img.naturalWidth / img.naturalHeight;
-
-//         // Calculate the image's height based on the aspect ratio and width
-//         let imgHeightInPixels = imgWidthInPixels / aspectRatio;
-
-//         // Adjust the height to the nearest multiple of the line height
-//         imgHeightInPixels = Math.round(imgHeightInPixels / lineHeight) * lineHeight;
-
-//         // Check if the calculated width fits in the container
-//         if (imgWidthInPixels > containerWidth) {
-//             imgWidthInPixels = containerWidth; // Ensure image doesn't overflow container width
-//             imgHeightInPixels = imgWidthInPixels / aspectRatio; // Adjust height based on new width
-//         }
-
-//         // Now check if the calculated height exceeds container height
-//         if (imgHeightInPixels > outputContainer.clientHeight) {
-//             imgHeightInPixels = outputContainer.clientHeight; // Limit height to container height
-//             imgWidthInPixels = imgHeightInPixels * aspectRatio; // Recalculate width based on new height
-//         }
-
-//         // Ensure the width doesn't exceed the container after height adjustment
-//         if (imgWidthInPixels > containerWidth) {
-//             imgWidthInPixels = containerWidth; // Set width to container width if it exceeds
-//             imgHeightInPixels = imgWidthInPixels / aspectRatio; // Adjust height based on new width
-//         }
-
-//         // Apply the calculated width and height while preserving the aspect ratio
-//         //img.style.maxWidth = `${(imgWidthPercent / 100) * containerWidth}px`; // Set max-width
-//         img.style.maxHeight = `${imgHeightInPixels}px`;  // Set max-height with line height multiple
-//         img.style.width = 'auto';  // Auto width maintains aspect ratio
-//         img.style.height = 'auto'; // Let the height scale naturally
-//         img.style.leftMargin='3px'
-//         img.style.rightMargin='3px'
-//     }
-
-//     // Set basic styles for the image
-//     // img.style.verticalAlign = 'bottom'; // Align the image to the bottom of the line
-//     img.style.float = floatInput; // Apply the float value (left, right, or none)
-//     img.style.objectFit = 'cover'; // Ensure the image covers its box without distortion
-
-//     // Adjust the image dimensions on load
-//     adjustImageDimensions();
-
-//     // Append the image to the container
-//     const outputContainer = document.getElementById('output-inner-container');
-//     outputContainer.appendChild(img);
-
-//     // Close the popup
-//     document.getElementById('popup-output').style.display = 'none';
-
-//     // Recalculate dimensions when the window or container resizes
-//     window.addEventListener('resize', adjustImageDimensions);
-// }
-function setProperties() {
-    const floatInput = document.getElementById('floatInput').value;
-    const widthInput = document.getElementById('widthInput').value;
-    const img = imagesArray[imagesArray.length - 1];
-
-    // Line height used for text (ensure this matches the actual line height of the container's text)
-    const lineSpacingInput = document.getElementById('line-spacing-text-input').value;
-    let lineHeight;
-
-    if (window.innerWidth <= 900) {  // Check if the screen width is for mobile
-        lineHeight = lineSpacingInput ? parseInt(lineSpacingInput) : 20;
-    } else {
-        lineHeight = lineSpacingInput ? parseInt(lineSpacingInput) : 23;
-    }
-
-    // Set the initial margin-top based on input or screen size
-    const marginTopInput = document.getElementById('margin-top-input');
-    let marginTop;
-
-    if (window.innerWidth <= 900) {
-        marginTop = marginTopInput && marginTopInput.value ? -Math.abs(parseInt(marginTopInput.value, 10)): -7;  // Set margin-top to -5px for screens less than 900px wide
-    } else {
-        marginTop = marginTopInput && marginTopInput.value ? -Math.abs(parseInt(marginTopInput.value, 10)): -7;  // Use input or -8px
-    }
-
-    // Function to set the image's width and height, ensuring height is a multiple of line height
-    function adjustImageDimensions() {
-        const outputContainer = document.getElementById('output-inner-container');
-        const containerWidth = outputContainer.clientWidth;
-        const imgWidthPercent = parseFloat(widthInput);
-        let imgWidthInPixels = (imgWidthPercent / 100) * containerWidth;
-        
-        // Get the image's natural aspect ratio (for quality preservation)
-        const aspectRatio = img.naturalWidth / img.naturalHeight;
-
-        // Calculate the image's height based on the aspect ratio and width
-        let imgHeightInPixels = imgWidthInPixels / aspectRatio;
-
-        // Adjust the height to the nearest multiple of the line height
-        imgHeightInPixels = Math.round(imgHeightInPixels / lineHeight) * lineHeight;
-
-        // Check if the calculated width fits in the container
-        if (imgWidthInPixels > containerWidth) {
-            imgWidthInPixels = containerWidth;
-            imgHeightInPixels = imgWidthInPixels / aspectRatio;
-        }
-
-        // Now check if the calculated height exceeds container height
-        if (imgHeightInPixels > outputContainer.clientHeight) {
-            imgHeightInPixels = outputContainer.clientHeight;
-            imgWidthInPixels = imgHeightInPixels * aspectRatio;
-        }
-
-        // Ensure the width doesn't exceed the container after height adjustment
-        if (imgWidthInPixels > containerWidth) {
-            imgWidthInPixels = containerWidth;
-            imgHeightInPixels = imgWidthInPixels / aspectRatio;
-        }
-
-        // Apply calculated width, height, and other styles
-        img.style.maxHeight = `${imgHeightInPixels}px`;
-        img.style.width = 'auto';
-        img.style.height = 'auto';
-        img.style.marginLeft = '3px';
-        img.style.marginRight = '3px';
-    }
-
-    // Set basic styles for the image
-    img.style.float = floatInput; // Apply the float value (left, right, or none)
-    img.style.objectFit = 'cover';
-    img.style.marginTop = `${marginTop}px`;  // Initial margin-top value based on conditions
-
-    // Adjust the image dimensions on load
-    adjustImageDimensions();
-
-    // Append the image to the container
-    const outputContainer = document.getElementById('output-inner-container');
-    outputContainer.appendChild(img);
-
-    // Close the popup
-    document.getElementById('popup-output').style.display = 'none';
-
-    // Recalculate dimensions when the window or container resizes
-    window.addEventListener('resize', adjustImageDimensions);
 }
 
 
-function getPointerPos(e) {
-    const rect = canvas.getBoundingClientRect();
-    if (e.touches) {
-        return {
-            offsetX: e.touches[0].clientX - rect.left,
-            offsetY: e.touches[0].clientY - rect.top
-        };
-    }
-    return {
-        offsetX: e.clientX - rect.left,
-        offsetY: e.clientY - rect.top
-    };
-}
 
-canvas.addEventListener('mousedown', startDraw);
-canvas.addEventListener('touchstart', startDraw, { passive: false });
-
-canvas.addEventListener('mousemove', function(e) {
-    const { offsetX, offsetY } = getPointerPos(e);
-    drawShape(offsetX, offsetY);
-});
-canvas.addEventListener('touchmove', function(e) {
-    const { offsetX, offsetY } = getPointerPos(e);
-    drawShape(offsetX, offsetY);
-}, { passive: false });
-
-canvas.addEventListener('mouseup', function(e) {
-    isDrawing = false;
-});
-canvas.addEventListener('touchend', function(e) {
-    isDrawing = false;
-}, { passive: false });
-
-canvas.addEventListener('mouseleave', function() {
-    isDrawing = false;
-});
-canvas.addEventListener('touchcancel', function() {
-    isDrawing = false;
-}, { passive: false });
-
-
-
-function openImageUploadPopup() {
-    document.getElementById('popup-image').style.display = 'flex';
-}
-
-function closePopupimage() {
-    document.getElementById('popup-image').style.display = 'none';
-}
-
-function drawImage() {
-    const input = document.getElementById('image-upload');
-    const file = input.files[0];
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        const img = new Image();
-        img.onload = function() {
-            images.push({ img, x: 0, y: 0, width: 100, height: 100 });
-            undoStack.push(canvas.toDataURL());
-            redoStack = [];
-            setProperty();
-            drawImages()
-            
-        };
-        img.src = e.target.result;
-    };
-    reader.readAsDataURL(file);
-    closePopupimage();
-}
-
-function setProperty() {
-    // Assuming 'container' is the id of the container element (e.g., a canvas or div)
-const container = document.getElementById('drawing-canvas');
-const containerWidth = container.clientWidth;
-const containerHeight = container.clientHeight;
-
-const index = images.length - 1; // Index of the last added image
-const aspectRatio = images[index].img.width / images[index].img.height;
-
-// Get percentage values from input fields
-const newWidthPercent = parseFloat(document.getElementById('image-width').value);
-const newXPercent = parseFloat(document.getElementById('image-x').value);
-const newYPercent = parseFloat(document.getElementById('image-y').value);
-
-// Convert percentage values to pixels
-const newWidth = (newWidthPercent / 100) * containerWidth;
-const newHeight = newWidth / aspectRatio;
-const newX = (newXPercent / 100) * containerWidth;
-const newY = (newYPercent / 100) * containerHeight;
-
-// Update the image properties
-images[index].width = newWidth;
-images[index].height = newHeight;
-images[index].x = newX;
-images[index].y = newY;
-
-
-
-}
-
-function drawImages() {
-    const { img, x, y, width, height } =images[images.length-1];
-    ctx.drawImage(img, x, y, width, height);
-
-   
-}
-
-
-// Color picker button
-document.getElementById("color-picker-button").addEventListener("click", openColorPicker);
-document.getElementById("drawing-color").addEventListener("change", function(event) {
-    changeDrawingColor(event.target.value);
-});
-
-// Shape buttons
-document.getElementById("pen-button").addEventListener("click", function() {
-    shape('pen');
-});
-document.getElementById("eraser-button").addEventListener("click", function() {
-    shape('eraser');
-});
-document.getElementById("line-button").addEventListener("click", function() {
-    shape('line');
-});
-document.getElementById("circle-button").addEventListener("click", function() {
-    shape('circle');
-});
-document.getElementById("rectangle-button").addEventListener("click", function() {
-    shape('rectangle');
-});
-
-// Undo and redo buttons
-document.getElementById("undo-button").addEventListener("click", undo);
-document.getElementById("redo-button").addEventListener("click", redo);
-
-// Save button
-document.getElementById("save-button").addEventListener("click", saveDrawing);
-
-// Upload button
-document.getElementById("upload-button").addEventListener("click", openImageUploadPopup);
-
-// Clear button
-document.getElementById("clear-button").addEventListener("click", clearDrawing);
-
-// Add to paper button
-document.getElementById("add-to-paper-button").addEventListener("click", addDrawingToOutput);
-document.getElementById("add top of paper").addEventListener("click", addImageTop);
-
-
-// Sliders
-document.getElementById("drawing-size").addEventListener("change", function(event) {
-    changeDrawingSize(event.target.value);
-});
-document.getElementById("set-property-button").addEventListener("click", drawImage);
-document.getElementById("set-button").addEventListener("click", setProperties);
-
-
-// // editor script
-
-//  // Function to apply formatting (bold, italic, underline, etc.)
-//  function toggleFormat(command) {
-//     document.execCommand(command, false, null);
-//     updateActiveState();
-// }
-
-// // Function to set font size (mapped to Heading levels)
-// function setFontSize(select) {
-//     const fontSizeLevel = select.value;
-//     document.execCommand('fontSize', false, fontSizeLevel); // Use fontSize level (1 to 7)
-// }
-
-// // Function to set font family (applied like bold)
-// function setFontFamily(select) {
-//     const fontFamily = select.value;
-//     document.execCommand('fontName', false, fontFamily);
-// }
-
-// // Function to set text color
-// function setTextColor(input) {
-//     document.execCommand('foreColor', false, input.value);
-// }
-
-// // Function to set background color
-// function setBackgroundColor(input) {
-//     document.execCommand('backColor', false, input.value);
-// }
-
-// // Function to insert an image from URL or local file
-// // function insertImageFromFile(event) {
-// //     const file = event.target.files[0]; // Get the selected file
-// //     if (file) {
-// //         const reader = new FileReader();
-// //         reader.onload = function (e) {
-// //             const imgTag = `<img src="${e.target.result}" style="max-width: 100%; height: auto;">`; // Create the image tag
-// //             const mixedInput = document.getElementById('mixed-input'); // Ensure mixed-input is targeted
-// //             mixedInput.focus(); // Focus the mixed-input to ensure insertion works
-// //             document.execCommand('insertHTML', false, imgTag); // Insert the image using execCommand
-// //         };
-// //         reader.readAsDataURL(file); // Read the file as a Data URL
-// //     } else {
-// //         console.error('No file selected or invalid file.');
-// //     }
-// // }
-
-// // Function to insert a table (with basic support)
-// function insertTable() {
-//     const rows = prompt("Enter number of rows:");
-//     const cols = prompt("Enter number of columns:");
-    
-//     // Validate the input
-//     if (rows && cols && !isNaN(rows) && !isNaN(cols)) {
-//         // Create the table structure
-//         let table = '<table border="1" style="border-collapse: collapse;">';
-//         for (let i = 0; i < rows; i++) {
-//             table += '<tr>';
-//             for (let j = 0; j < cols; j++) {
-//                 table += `<td contenteditable="true" style="padding: 5px; border: 1px solid #ccc;">Cell</td>`;
-//             }
-//             table += '</tr>';
-//         }
-//         table += '</table>';
-        
-//         // Get the current selection and range
-//         const selection = window.getSelection();
-//         const range = selection.getRangeAt(0);
-        
-//         // Create a temporary div to hold the table HTML
-//         const tempDiv = document.createElement('div');
-//         tempDiv.innerHTML = table;
-        
-//         // Insert the table at the current cursor position
-//         range.deleteContents(); // Remove the selected content (if any)
-//         range.insertNode(tempDiv.firstChild); // Insert the table
-//     }
-// }
-
-// // Function to update toolbar button states
-// function updateActiveState() {
-//     const selection = window.getSelection();
-//     const selectedText = selection.toString();
-//     const isBold = document.queryCommandState("bold");
-//     const isItalic = document.queryCommandState("italic");
-//     const isUnderline = document.queryCommandState("underline");
-//     const isJustifyLeft = document.queryCommandState("justifyLeft");
-//     const isJustifyCenter = document.queryCommandState("justifyCenter");
-//     const isJustifyRight = document.queryCommandState("justifyRight");
-
-//     toggleButtonState('boldBtn', isBold);
-//     toggleButtonState('italicBtn', isItalic);
-//     toggleButtonState('underlineBtn', isUnderline);
-//     toggleButtonState('leftAlignBtn', isJustifyLeft);
-//     toggleButtonState('centerAlignBtn', isJustifyCenter);
-//     toggleButtonState('rightAlignBtn', isJustifyRight);
-// }
-
-// // Function to toggle button active/inactive state
-// function toggleButtonState(buttonId, isActive) {
-//     const button = document.getElementById(buttonId);
-//     if (isActive) {
-//         button.classList.add('active');
-//     } else {
-//         button.classList.remove('active');
-//     }
-// }
-
-// // Initialize the active state when contenteditable is ready
-// document.getElementById('mixed-input').addEventListener('input', function() {
-//     updateActiveState();
-// });
-
-// // Function to handle paste event and insert as plain text
-// document.getElementById('mixed-input').addEventListener('paste', function(e) {
-//     e.preventDefault(); // Prevent the default paste behavior
-
-//     // Get the pasted text as plain text
-//     const text = (e.clipboardData || window.clipboardData).getData('text');
-
-//     // Insert the plain text at the current cursor position
-//     document.execCommand('insertText', false, text);
-// });
-
-// const quill = new Quill('#mixed-input', {
-//     modules: {
-//       syntax: true, // Enable syntax highlighting
-//       toolbar: '#toolbar-container', // Attach toolbar to the editor
-//     },
-//     placeholder: 'Compose an epic...', // Placeholder text
-//     theme: 'snow', // Snow theme for Quill
-//   });
-//   quill.on('text-change', function () {
-//     convertToHTML(); // Call your function whenever content changes
-//   });
   
 document.addEventListener("DOMContentLoaded", function () {
-    const closeBtn = document.querySelector('.close-btn');
-    setTimeout(showMainPopup, 60000); // Show main popup after 30 seconds
+    const closeBtn = document.querySelector('.modern-close-btn');
+    setTimeout(showMainPopup, 600000); // Show main popup after 30 seconds
     setTimeout(() => {
-        closeBtn.style.display = 'block';
+        closeBtn.style.display = 'flex';
       }, 70000);
 
 });
@@ -1790,160 +2072,160 @@ function redirectToSupport() {
 }
 
 
+// =======================================================
+// GLOBAL STATE
+// =======================================================
+let interactLoaded = false;
+let selectedTopImage = null;
 
-//
-function createTopImageElement(src) {
-    const img = document.createElement('img');
-    img.src = src;
-    img.className = 'top-img';  // Changed to 'top-img' for distinction
-    img.style.width = '150px';
-    img.style.height = 'auto';
-    img.draggable = true;
-  
-    // Adding drag functionality
-    interact(img)
-      .draggable({
-        listeners: {
-          move(event) {
-            const target = event.target;
-            const dx = event.dx;
-            const dy = event.dy;
-  
-            const rect = target.getBoundingClientRect();
-            const parent = target.parentElement;
-  
-            // Move image by adjusting margin instead of absolute position
-            const currentLeft = parseFloat(target.style.marginLeft) || 0;
-            const currentTop = parseFloat(target.style.marginTop) || 0;
-            target.style.marginLeft = `${currentLeft + dx}px`;
-            target.style.marginTop = `${currentTop + dy}px`;
-          }
-        }
-      })
-      .resizable({
-        edges: { left: true, right: true, bottom: true, top: true },
-        listeners: {
-          move(event) {
-            let { x, y } = event.target.dataset;
-  
-            x = (parseFloat(x) || 0) + event.deltaRect.left;
-            y = (parseFloat(y) || 0) + event.deltaRect.top;
-  
-            Object.assign(event.target.style, {
-              width: `${event.rect.width}px`,
-              height: `${event.rect.height}px`,
-              transform: `translate(${x}px, ${y}px)`
-            });
-  
-            Object.assign(event.target.dataset, { x, y });
-          }
-        }
-      });
-  
-    // Add event listener for border toggle on click
-    img.addEventListener('click', function () {
-      // Add dashed border on click
-      img.style.border = '2px dashed #000';
+// =======================================================
+// LAZY LOAD INTERACT.JS
+// =======================================================
+function loadInteract() {
+    if (interactLoaded) return Promise.resolve();
+
+    return new Promise((resolve, reject) => {
+        const script = document.createElement("script");
+        script.src = "https://cdn.jsdelivr.net/npm/interactjs/dist/interact.min.js";
+
+        script.onload = () => {
+            interactLoaded = true;
+            resolve();
+        };
+
+        script.onerror = reject;
+        document.body.appendChild(script);
     });
-  
-    return img;
-  }
-  
-  function addImageTop() {
-    const canvas = document.getElementById('drawing-canvas');
-    const container = document.getElementById('shadow-effect');  // Container for the top image
-    const dataUrl = canvas.toDataURL('image/png');
-  
-    const img = createTopImageElement(dataUrl);
-    img.style.position = 'absolute';
-    img.style.top = '10px';  // Adjust top position
-    img.style.left = '10px';  // Adjust left position
-    img.style.zIndex = '10';  // Set the z-index for stacking order
-  
-    container.appendChild(img);
-  }
-  
-  // Remove dashed border if clicked anywhere else on the document
-  document.addEventListener('click', function (e) {
-    const images = document.querySelectorAll('.top-img');
-    
-    // If clicked outside the image, remove the border
-    if (!e.target.classList.contains('top-img')) {
-      images.forEach(image => {
-        image.style.border = 'none';  // Remove border from all images
-      });
+}
+
+// =======================================================
+// INIT INTERACT (DRAG + RESIZE)
+// =======================================================
+function initInteractForImages() {
+    interact(".top-img")
+        .draggable({
+            listeners: {
+                move(event) {
+                    const target = event.target;
+
+                    let x = (parseFloat(target.dataset.x) || 0) + event.dx;
+                    let y = (parseFloat(target.dataset.y) || 0) + event.dy;
+
+                    target.style.transform = `translate(${x}px, ${y}px)`;
+                    target.dataset.x = x;
+                    target.dataset.y = y;
+                }
+            }
+        })
+        .resizable({
+            edges: { left: true, right: true, bottom: true, top: true },
+            listeners: {
+                move(event) {
+                    const target = event.target;
+
+                    let x = (parseFloat(target.dataset.x) || 0) + event.deltaRect.left;
+                    let y = (parseFloat(target.dataset.y) || 0) + event.deltaRect.top;
+
+                    Object.assign(target.style, {
+                        width: `${event.rect.width}px`,
+                        height: `${event.rect.height}px`,
+                        transform: `translate(${x}px, ${y}px)`
+                    });
+
+                    target.dataset.x = x;
+                    target.dataset.y = y;
+                }
+            }
+        });
+}
+
+// =======================================================
+// IMAGE SELECTION (CLICK)
+// =======================================================
+const deleteBtn = document.getElementById("delete-image-btn");
+
+document.addEventListener("click", (e) => {
+    const images = document.querySelectorAll(".top-img");
+    images.forEach(img => img.style.border = "none");
+
+    if (e.target.classList.contains("top-img")) {
+        selectedTopImage = e.target;
+        selectedTopImage.style.border = "2px dashed #000";
+        deleteBtn.style.display = "block";
+    } else {
+        selectedTopImage = null;
+        deleteBtn.style.display = "none";
     }
-  });
-  
+});
+deleteBtn.addEventListener("click", () => {
+    if (!selectedTopImage) return;
 
-//   const editor = document.getElementById('output-inner-container');
-//   let debounceTimer = null;
+    selectedTopImage.remove();
+    selectedTopImage = null;
+    deleteBtn.style.display = "none";
+});
 
-//   editor.addEventListener('input', () => {
-//     clearTimeout(debounceTimer);
-//     debounceTimer = setTimeout(renderLatexPreservingCaret, 100);
-//   });
 
-//   function insertCaretSpan() {
-//     const sel = window.getSelection();
-//     if (!sel.rangeCount) return;
-//     const range = sel.getRangeAt(0);
-//     const span = document.createElement('span');
-//     span.id = 'caret-marker';
-//     span.textContent = '\u200b'; // zero-width space
-//     range.insertNode(span);
-//   }
+// =======================================================
+// DELETE IMAGE (KEYBOARD ONLY)
+// =======================================================
+document.addEventListener("keydown", (e) => {
+    if (!selectedTopImage) return;
 
-//   function restoreCaretSpan() {
-//     const marker = document.getElementById('caret-marker');
-//     if (!marker) return;
-//     const range = document.createRange();
-//     const sel = window.getSelection();
-//     range.setStartAfter(marker);
-//     range.setEndAfter(marker);
-//     sel.removeAllRanges();
-//     sel.addRange(range);
-//     marker.remove(); // clean up
-//   }
+    if (e.key === "Delete" || e.key === "Backspace") {
+        e.preventDefault();
+        selectedTopImage.remove();
+        selectedTopImage = null;
+    }
+});
 
-//   function renderLatexPreservingCaret() {
-//     insertCaretSpan();
 
-//     const rawHTML = editor.innerHTML;
-//     const tempDiv = document.createElement('div');
-//     tempDiv.innerHTML = rawHTML;
+// =======================================================
+// CREATE IMAGE ELEMENT
+// =======================================================
+function createTopImageElement(src) {
+    const img = document.createElement("img");
+    img.src = src;
 
-//     // Walk through text nodes and convert $...$ to KaTeX
-//     const walker = document.createTreeWalker(tempDiv, NodeFilter.SHOW_TEXT);
-//     const textsToConvert = [];
+    img.className = "top-img";
+    img.style.position = "absolute";
+    img.style.zIndex = 10; // FIXED
+    img.style.top = "0px";
+    img.style.left = "0px";
 
-//     while (walker.nextNode()) {
-//       const node = walker.currentNode;
-//       if (node.parentElement.id === 'caret-marker') continue;
-//       const matches = node.textContent.match(/\$(.+?)\$/g);
-//       if (matches) textsToConvert.push(node);
-//     }
+    img.dataset.x = 10;
+    img.dataset.y = 10;
+    img.style.transform = "translate(10px, 10px)";
 
-//     textsToConvert.forEach(node => {
-//       const parts = node.textContent.split(/(\$.+?\$)/g);
-//       const fragment = document.createDocumentFragment();
-//       parts.forEach(part => {
-//         if (part.startsWith('$') && part.endsWith('$')) {
-//           const expr = part.slice(1, -1);
-//           try {
-//             const span = document.createElement('span');
-//             span.innerHTML = katex.renderToString(expr, { throwOnError: false });
-//             fragment.appendChild(span);
-//           } catch {
-//             fragment.appendChild(document.createTextNode(part));
-//           }
-//         } else {
-//           fragment.appendChild(document.createTextNode(part));
-//         }
-//       });
-//       node.replaceWith(fragment);
-//     });
+    img.style.width = "150px";
+    img.style.height = "auto";
+    img.style.cursor = "move";
+    img.style.touchAction = "none";
 
-//     editor.innerHTML = tempDiv.innerHTML;
-//     restoreCaretSpan();
-//   }
+    return img;
+}
+
+// =======================================================
+// ADD IMAGE FROM CANVAS (YOUR FLOW)
+// =======================================================
+async function addImageTop() {
+    const canvas = document.getElementById("drawing-canvas");
+    const container = document.getElementById("shadow-effect");
+
+    if (!canvas || !container) return;
+
+    // Convert canvas → image
+    const dataUrl = canvas.toDataURL("image/png");
+
+    const img = createTopImageElement(dataUrl);
+    container.appendChild(img);
+
+    // Lazy-load interact.js once
+    await loadInteract();
+
+    if (!window._interactInitialized) {
+        initInteractForImages();
+        window._interactInitialized = true;
+    }
+}
+
