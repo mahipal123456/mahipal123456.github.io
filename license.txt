@@ -1,0 +1,31 @@
+Copyright (c) [2024] Text to Handwriting
+
+By using this software, you agree to the following:
+
+1. **No Copying**  
+   You cannot copy, reproduce, or duplicate the code in any form.
+
+2. **No Redistribution**  
+   You cannot redistribute, sublicense, or sell the software, in whole or in part, without permission.
+
+3. **No Modification**  
+   You cannot modify, reverse-engineer, decompile, or disassemble the code.
+
+4. **No Derivative Works**  
+   You cannot create derivative works or adapt the code into other software or products.
+
+5. **Commercial Use Allowed**  
+   You may use the software commercially, but you cannot redistribute or sell it.
+
+6. **No Rebranding**  
+   You cannot rebrand or use the code as part of another product or service without permission.
+
+7. **No Warranty**  
+   The software is provided "as-is." No warranties, express or implied, are provided.
+
+8. **Termination**  
+   If you violate any of these terms, the license is terminated, and you must stop using the software and destroy any copies.
+This license is valid for [10 years], after which it will expire unless renewed.
+
+
+For permission requests or questions, contact: [mahipalkumawat810@gmail.com].
