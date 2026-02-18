@@ -14,11 +14,11 @@
   --line-spacing: 1.5em;
   --left-margin-display: flex;
   --top-margin-display: flex;
-  --output-left-border: 2px solid #00000066;
-  --top-margin-left-border: 2px solid #00000066;
-  --top-margin-bottom-border: 1px solid #00000066;
-  --subbox-bottom-border: 1px solid #00000066;
-  --background-lines: linear-gradient(#00000066 0.15em, transparent 0.1em);
+  --output-left-border: 2px solid #0c1d8c66;
+  --top-margin-left-border: 2px solid #0c1d8c66;
+  --top-margin-bottom-border: 1px solid #0c1d8c66;
+  --subbox-bottom-border: 1px solid #0c1d8c66;
+  --background-lines: linear-gradient(#0c1d8c66 0.15em, transparent 0.1em);
   --custom-background-image: none;
   --main-font:'AnotherFont','CustomFont';
   --math-font:'AnotherFont','CustomFont' , 'KaTeX_Main';
@@ -1729,18 +1729,18 @@ body {
 @media  (max-width: 900px) {
     
     #final_page {
-      height: 867px;
-      width: 698px;
+      width: 794px;
+      aspect-ratio: 794 / 1123;
     }
    
-    :root {
-      --line-spacing: 20px;
-      --margin-top: 7px;
-      --font-size: 13px;
-      --word-spacing: 10px;
-      --line-height:20px
-    }
     
+    :root {
+      --line-spacing: 32px;
+      --margin-top: 10px;
+      --font-size: 17px;
+      --word-spacing: 10px;
+      --line-height:32px
+    }
     #left-margin,
     #output-container {
       background-size: 100% var(--line-spacing);
@@ -1819,17 +1819,17 @@ body {
 }
 @media  (min-width: 900px) {
     #final_page {
-      width: 874px;
-      height: 993px;
+       width: 794px;
+      aspect-ratio: 794 / 1123;
     }
     
    
     :root {
-      --line-spacing: 23px;
-      --margin-top: 7px;
-      --font-size: 15px;
+      --line-spacing: 32px;
+      --margin-top: 10px;
+      --font-size: 17px;
       --word-spacing: 10px;
-      --line-height:23px
+      --line-height:32px
     }
     
     #left-margin-in,
@@ -2387,7 +2387,7 @@ display:none;
      /* Fixed height */
     padding: 10px;
     box-sizing: border-box;
-    resize: both;
+    resize:horizontal;
     overflow: auto;
     scrollbar-width: none;
     /* height: 100%; */
