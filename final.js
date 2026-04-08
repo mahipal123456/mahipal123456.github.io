@@ -2242,3 +2242,35 @@ async function addImageTop() {
     }
 }
 
+// ========================================================
+// SLIDER FILL PROGRESS
+// ========================================================
+function updateSliderFill(slider) {
+    const min = parseFloat(slider.min) || 0;
+    const max = parseFloat(slider.max) || 100;
+    const val = parseFloat(slider.value) || 0;
+    const percent = ((val - min) / (max - min)) * 100;
+    slider.style.background = `linear-gradient(to right, var(--accent) ${percent}%, var(--app-border) ${percent}%)`;
+}
+
+// Initialize all sliders with fill progress
+document.addEventListener('DOMContentLoaded', function() {
+    const sliders = document.querySelectorAll('input[type="range"]');
+    sliders.forEach(slider => {
+        updateSliderFill(slider);
+        slider.addEventListener('input', () => updateSliderFill(slider));
+    });
+});
+
+// Close sidebar when clicking outside on mobile
+document.addEventListener('click', function(e) {
+    const sidebar = document.getElementById('sidebar-left');
+    const toggleBtn = document.querySelector('.sidebar-toggle-mobile');
+    
+    if (sidebar && sidebar.classList.contains('open')) {
+        if (!sidebar.contains(e.target) && e.target !== toggleBtn && !toggleBtn.contains(e.target)) {
+            sidebar.classList.remove('open');
+        }
+    }
+});
+
