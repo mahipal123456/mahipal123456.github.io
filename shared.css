@@ -1,5 +1,10 @@
 /* ===========================================
-   NAVIGATION - Modern Dark Theme
+   SHARED STYLES - Navbar & Footer
+   Fresh Modern Design - Warm & Inviting
+   =========================================== */
+
+/* ===========================================
+   NAVIGATION
    =========================================== */
 .navbar {
   position: fixed;
@@ -7,15 +12,16 @@
   left: 0;
   right: 0;
   z-index: 1000;
-  background: rgba(10, 10, 15, 0.85);
+  background: rgba(28, 25, 23, 0.9);
   backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   transition: all 0.3s ease;
 }
 
 .navbar.scrolled {
-  background: rgba(10, 10, 15, 0.95);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  background: rgba(28, 25, 23, 0.98);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
 }
 
 .nav-container {
@@ -47,19 +53,19 @@
 
 .brand-icon {
   font-size: 0.85rem;
-  font-weight: 700;
-  background: linear-gradient(135deg, #22d3ee 0%, #06b6d4 100%);
-  color: #0a0a0f;
-  padding: 8px 12px;
-  border-radius: 8px;
+  font-weight: 800;
+  background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%);
+  color: white;
+  padding: 10px 14px;
+  border-radius: 10px;
   letter-spacing: -0.02em;
 }
 
 .brand-text {
-  color: #f4f4f5;
-  font-weight: 600;
+  color: #fafaf9;
+  font-weight: 700;
   font-size: 1.1rem;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
 }
 
 /* Navigation Menu */
@@ -79,32 +85,32 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 10px 16px;
+  padding: 10px 18px;
   text-decoration: none;
-  color: #a1a1aa;
+  color: #a8a29e;
   font-weight: 500;
   font-size: 0.9rem;
-  border-radius: 8px;
+  border-radius: 10px;
   transition: all 0.2s ease;
   position: relative;
 }
 
 .nav-link:hover {
-  color: #f4f4f5;
-  background: rgba(255, 255, 255, 0.05);
+  color: #fafaf9;
+  background: rgba(255, 255, 255, 0.06);
 }
 
 .nav-link.support-btn {
-  background: linear-gradient(135deg, #22d3ee 0%, #06b6d4 100%);
-  color: #0a0a0f;
+  background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%);
+  color: white;
   margin-left: 12px;
   font-weight: 600;
-  box-shadow: 0 2px 12px rgba(34, 211, 238, 0.25);
+  box-shadow: 0 2px 12px rgba(234, 88, 12, 0.3);
 }
 
 .nav-link.support-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 20px rgba(34, 211, 238, 0.35);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px rgba(234, 88, 12, 0.4);
 }
 
 .nav-text {
@@ -119,19 +125,20 @@
   padding: 8px;
   border-radius: 8px;
   background: transparent;
+  border: none;
   transition: all 0.2s ease;
   gap: 5px;
 }
 
 .mobile-menu-toggle:hover {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.06);
 }
 
 .hamburger-line {
   width: 22px;
   height: 2px;
-  background: #f4f4f5;
-  border-radius: 1px;
+  background: #fafaf9;
+  border-radius: 2px;
   transition: all 0.3s ease;
 }
 
@@ -147,18 +154,18 @@
   transform: rotate(-45deg) translate(5px, -5px);
 }
 
-@media (max-width: 768px) {
+@media (max-width: 900px) {
   .nav-menu {
     display: none;
     position: absolute;
     top: 100%;
     left: 0;
     right: 0;
-    background: rgba(10, 10, 15, 0.98);
+    background: rgba(28, 25, 23, 0.98);
     backdrop-filter: blur(20px);
     border-top: 1px solid rgba(255, 255, 255, 0.06);
     border-radius: 0 0 16px 16px;
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
     flex-direction: column;
     padding: 20px;
     gap: 8px;
@@ -187,11 +194,11 @@
 }
 
 /* ===========================================
-   FOOTER - Modern Dark Theme
+   FOOTER
    =========================================== */
 .modern-footer {
-  background: linear-gradient(180deg, #0a0a0f 0%, #06060a 100%);
-  color: #f4f4f5;
+  background: #1c1917;
+  color: #fafaf9;
   position: relative;
   border-top: 1px solid rgba(255, 255, 255, 0.06);
 }
@@ -203,7 +210,7 @@
   left: 0;
   right: 0;
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(34, 211, 238, 0.5), transparent);
+  background: linear-gradient(90deg, transparent, rgba(234, 88, 12, 0.5), transparent);
 }
 
 .footer-container {
@@ -229,9 +236,9 @@
 
 .footer-brand-section h3.footer-brand {
   font-size: 1.75rem;
-  font-weight: 700;
+  font-weight: 800;
   margin-bottom: 20px;
-  background: linear-gradient(135deg, #22d3ee 0%, #06b6d4 100%);
+  background: linear-gradient(135deg, #ea580c 0%, #fb923c 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -239,7 +246,7 @@
 }
 
 .footer-description {
-  color: #a1a1aa;
+  color: #78716c;
   font-size: 1rem;
   line-height: 1.7;
   margin-bottom: 32px;
@@ -259,15 +266,15 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #a1a1aa;
+  color: #a8a29e;
   text-decoration: none;
   transition: all 0.3s ease;
 }
 
 .social-link:hover {
-  background: rgba(34, 211, 238, 0.1);
-  border-color: rgba(34, 211, 238, 0.3);
-  color: #22d3ee;
+  background: rgba(234, 88, 12, 0.1);
+  border-color: rgba(234, 88, 12, 0.3);
+  color: #ea580c;
   transform: translateY(-2px);
 }
 
@@ -284,8 +291,8 @@
 
 .footer-section-title {
   font-size: 1rem;
-  font-weight: 600;
-  color: #f4f4f5;
+  font-weight: 700;
+  color: #fafaf9;
   margin-bottom: 24px;
   letter-spacing: -0.01em;
 }
@@ -297,14 +304,14 @@
 }
 
 .footer-link {
-  color: #a1a1aa;
+  color: #78716c;
   text-decoration: none;
   font-size: 0.95rem;
   transition: all 0.2s ease;
 }
 
 .footer-link:hover {
-  color: #22d3ee;
+  color: #ea580c;
 }
 
 .license-info {
@@ -331,7 +338,7 @@
 }
 
 .license-text {
-  color: #71717a;
+  color: #57534e;
   font-size: 0.9rem;
   line-height: 1.6;
 }
@@ -361,12 +368,12 @@
 
 .footer-copyright,
 .footer-credit {
-  color: #71717a;
+  color: #57534e;
   font-size: 0.9rem;
 }
 
 .creator-link {
-  color: #22d3ee;
+  color: #ea580c;
   text-decoration: none;
   font-weight: 500;
   transition: opacity 0.2s ease;
@@ -415,17 +422,17 @@
 }
 
 /* ===========================================
-   COOKIE BANNER - Modern Dark Theme
+   COOKIE BANNER
    =========================================== */
 #consentx-banner {
   position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
-  background: rgba(10, 10, 15, 0.98);
+  background: rgba(28, 25, 23, 0.98);
   backdrop-filter: blur(20px);
-  color: #f4f4f5;
-  box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.5);
+  color: #fafaf9;
+  box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.3);
   border-top: 1px solid rgba(255, 255, 255, 0.06);
   z-index: 9999;
   display: none;
@@ -436,10 +443,10 @@
   bottom: 0;
   left: 0;
   right: 0;
-  background: rgba(10, 10, 15, 0.98);
+  background: rgba(28, 25, 23, 0.98);
   backdrop-filter: blur(20px);
-  color: #f4f4f5;
-  box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.5);
+  color: #fafaf9;
+  box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.3);
   border-top: 1px solid rgba(255, 255, 255, 0.06);
   z-index: 9999;
 }
@@ -465,8 +472,8 @@
   flex-shrink: 0;
   width: 48px;
   height: 48px;
-  background: rgba(34, 211, 238, 0.1);
-  border: 1px solid rgba(34, 211, 238, 0.2);
+  background: rgba(234, 88, 12, 0.1);
+  border: 1px solid rgba(234, 88, 12, 0.2);
   border-radius: 12px;
   display: flex;
   align-items: center;
@@ -476,18 +483,18 @@
 .consentx-icon {
   width: 24px;
   height: 24px;
-  color: #22d3ee;
+  color: #ea580c;
 }
 
 .consentx-message {
   margin: 0;
   font-size: 0.9rem;
   line-height: 1.6;
-  color: #a1a1aa;
+  color: #a8a29e;
 }
 
 .consentx-message strong {
-  color: #f4f4f5;
+  color: #fafaf9;
 }
 
 .consentx-actions,
@@ -508,25 +515,25 @@
 }
 
 .consentx-btn.acceptx-btn {
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%);
   color: #ffffff;
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
+  box-shadow: 0 4px 12px rgba(234, 88, 12, 0.3);
 }
 
 .consentx-btn.acceptx-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.35);
+  box-shadow: 0 6px 20px rgba(234, 88, 12, 0.4);
 }
 
 .consentx-btn.denyx-btn {
   background: rgba(255, 255, 255, 0.05);
-  color: #a1a1aa;
+  color: #a8a29e;
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .consentx-btn.denyx-btn:hover {
   background: rgba(255, 255, 255, 0.08);
-  color: #f4f4f5;
+  color: #fafaf9;
 }
 
 @media (max-width: 768px) {
@@ -551,7 +558,7 @@
 }
 
 /* ===========================================
-   SUPPORT POPUPS - Modern Dark Theme
+   SUPPORT POPUPS
    =========================================== */
 .modern-popup-overlay {
   display: none;
@@ -560,7 +567,7 @@
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0, 0, 0, 0.8);
+  background: rgba(0, 0, 0, 0.75);
   backdrop-filter: blur(8px);
   z-index: 9999;
   align-items: center;
@@ -572,14 +579,14 @@
 }
 
 .modern-popup-container {
-  background: #16161f;
+  background: #292524;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 20px;
   padding: 40px;
   width: 95%;
   max-width: 400px;
   position: relative;
-  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.4);
   text-align: center;
   transform: scale(0.95);
   transition: transform 0.3s ease;
@@ -603,12 +610,12 @@
   justify-content: center;
   cursor: pointer;
   transition: all 0.2s ease;
-  color: #71717a;
+  color: #57534e;
 }
 
 .modern-close-btn:hover {
   background: rgba(255, 255, 255, 0.1);
-  color: #f4f4f5;
+  color: #fafaf9;
 }
 
 .popup-icon-container {
@@ -621,7 +628,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #22d3ee 0%, #06b6d4 100%);
+  background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%);
   border-radius: 16px;
   margin: 0 auto;
 }
@@ -629,26 +636,26 @@
 .popup-gift-icon svg {
   width: 32px;
   height: 32px;
-  color: #0a0a0f;
+  color: white;
 }
 
 .popup-title {
   font-size: 1.5rem;
   font-weight: 700;
-  color: #f4f4f5;
+  color: #fafaf9;
   margin-bottom: 12px;
 }
 
 .popup-description {
   font-size: 0.95rem;
-  color: #a1a1aa;
+  color: #a8a29e;
   line-height: 1.6;
   margin-bottom: 24px;
 }
 
 .popup-cta-button {
-  background: linear-gradient(135deg, #22d3ee 0%, #06b6d4 100%);
-  color: #0a0a0f;
+  background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%);
+  color: white;
   border: none;
   padding: 14px 28px;
   border-radius: 12px;
@@ -663,7 +670,7 @@
 
 .popup-cta-button:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(34, 211, 238, 0.3);
+  box-shadow: 0 8px 25px rgba(234, 88, 12, 0.35);
 }
 
 /* Mini Popup */
@@ -671,11 +678,11 @@
   position: fixed !important;
   bottom: 24px !important;
   right: 24px !important;
-  background: linear-gradient(135deg, #22d3ee 0%, #06b6d4 100%);
-  color: #0a0a0f;
+  background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%);
+  color: white;
   border-radius: 50px;
   cursor: pointer;
-  box-shadow: 0 8px 25px rgba(34, 211, 238, 0.3);
+  box-shadow: 0 8px 25px rgba(234, 88, 12, 0.35);
   z-index: 999 !important;
   transition: all 0.3s ease;
   display: none;
@@ -706,7 +713,7 @@
 
 .modern-mini-popup:hover {
   transform: translateY(-4px);
-  box-shadow: 0 12px 35px rgba(34, 211, 238, 0.4);
+  box-shadow: 0 12px 35px rgba(234, 88, 12, 0.45);
 }
 
 /* Progress Bar */
@@ -724,7 +731,7 @@
   display: block;
   height: 100%;
   width: 0%;
-  background: linear-gradient(90deg, #22d3ee, #06b6d4);
+  background: linear-gradient(90deg, #ea580c, #fb923c);
   border-radius: 3px;
   animation: fillProgress 10s linear forwards;
 }
