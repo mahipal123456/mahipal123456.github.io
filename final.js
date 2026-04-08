@@ -666,14 +666,27 @@ window.addEventListener('resize',  setLeftMarginHeight);
 
 
 function toggleMobileMenu() {
-    const navMenu = document.querySelector('.nav-menu');
-    const toggleButton = document.querySelector('.mobile-menu-toggle');
+    const navMenu = document.querySelector('.topbar-nav');
+    const toggleButton = document.querySelector('.topbar-mobile-toggle');
     
     // Toggle the active class on the hamburger button for animation
-    toggleButton.classList.toggle('active');
+    if (toggleButton) toggleButton.classList.toggle('active');
     
     // Toggle the mobile menu visibility
-    navMenu.classList.toggle('active');
+    if (navMenu) navMenu.classList.toggle('active');
+    
+    // Also toggle sidebar on mobile
+    const sidebar = document.getElementById('sidebar-left');
+    if (sidebar) sidebar.classList.toggle('open');
+}
+
+// Toggle sidebar visibility
+function toggleSidebar(side) {
+    const sidebar = document.getElementById('sidebar-' + side);
+    if (sidebar) {
+        sidebar.classList.toggle('collapsed');
+        sidebar.classList.toggle('open');
+    }
 }
   // Define a function to change CSS properties
         function changeCSSProperty(property, value, elementIds) {
