@@ -537,70 +537,93 @@
    
 
   
-<!-- main funcyionality -->
+<!-- main functionality -->
   <!--page-layout and customizations-->
   <h1 class="heading">Text to handwriting</h1>
   <section id="section2">
   
-    <div id="input-container1">
-      <!-- Compact Mode Toggle -->
-      <div class="mode-section">
+    <!-- TOP ACTION BAR -->
+    <div id="top-action-bar">
+      <div class="action-bar-left">
         <button id="toggle-mode-button" class="mode-toggle-btn">Switch to Drawing</button>
       </div>
-      
-      <div id="input-container" class="input-boxes">
-          
-          <div class="input-box" id="drawing-controls">
-            <div id="canvas-container">
-              <canvas id="drawing-canvas"  ></canvas>
+      <div class="action-bar-center">
+        <select id="download_options_top" class="action-bar-btn download-btn" onchange="handleDownload(this.value)">
+          <option value="">Download</option>
+          <option value="image">Current Page</option>
+          <option value="all-images">All Images</option>
+        </select>
+      </div>
+      <div class="action-bar-right">
+        <button class="action-bar-btn" onclick="deleteCurrentPage()">
+          <img src="icons/delete.svg" loading="lazy" alt="Delete">
+          <span>Delete</span>
+        </button>
+        <button class="action-bar-btn primary-action" id="creatnewpage-top" onclick="createNewPageInternal()">
+          <img src="icons/creat.svg" loading="lazy" alt="Create">
+          <span>New Page</span>
+        </button>
+      </div>
+    </div>
 
+    <!-- MAIN 2-PANEL LAYOUT: Controls + Editor/Preview -->
+    <div id="editor-layout">
+      
+      <!-- LEFT PANEL: Controls Sidebar -->
+      <div id="controls-panel">
+        <div class="panel-header">
+          <h3>Customization</h3>
+        </div>
+        <div class="controls-scroll">
+          
+          <!-- Drawing Controls Section (shown when drawing mode active) -->
+          <div class="input-box control-section" id="drawing-controls">
+            <h4 class="control-section-title">Drawing Tools</h4>
+            <div id="canvas-container">
+              <canvas id="drawing-canvas"></canvas>
             </div>
             <div id="canvas-tools">
-            <div id="icons">
+              <div id="icons">
                 <button id="color-picker-button">
-                    <img src="icons/color.svg" loading="lazy" alt="Color Picker">color
+                  <img src="icons/color.svg" loading="lazy" alt="Color Picker">color
                 </button>
                 <input type="color" id="drawing-color" loading="lazy" value="#000f64" style="display: none;">
                 
                 <button id="pen-button">
-                    <img src="icons/pen.svg" loading="lazy" alt="pen">pen
+                  <img src="icons/pen.svg" loading="lazy" alt="pen">pen
                 </button>
                 <button id="eraser-button">
-                    <img src="icons/eraser.svg" loading="lazy" alt="eraser">eraser
+                  <img src="icons/eraser.svg" loading="lazy" alt="eraser">eraser
                 </button>
                 <button id="line-button">
-                    <img src="icons/line.svg" loading="lazy" alt="line">line
+                  <img src="icons/line.svg" loading="lazy" alt="line">line
                 </button>
                 <button id="circle-button">
-                    <img src="icons/circle.svg" loading="lazy" alt="circle">circle
+                  <img src="icons/circle.svg" loading="lazy" alt="circle">circle
                 </button>
                 <button id="rectangle-button">
-                    <img src="icons/rectangle.svg" loading="lazy" alt="rectangle">rectangle
+                  <img src="icons/rectangle.svg" loading="lazy" alt="rectangle">rectangle
                 </button>
                 <button id="undo-button">
-                    <img src="icons/undo.svg"  loading="lazy" alt="undo">undo
+                  <img src="icons/undo.svg" loading="lazy" alt="undo">undo
                 </button>
                 <button id="redo-button">
-                    <img src="icons/redo.svg" loading="lazy" alt="redo">redo
+                  <img src="icons/redo.svg" loading="lazy" alt="redo">redo
                 </button>
                 <button id="save-button">
-                    <img src="icons/save.svg" loading="lazy" alt="save">save
+                  <img src="icons/save.svg" loading="lazy" alt="save">save
                 </button>
-                
-               
                 <button id="tool-select">
                   <img src="icons/cursor.svg" loading="lazy" alt="reset">Select
-
                 </button>
                 <button id="clear-button">
-                    <img src="icons/reset.svg" loading="lazy" alt="reset">Clear
+                  <img src="icons/reset.svg" loading="lazy" alt="reset">Clear
                 </button>
-                <button id="add top of paper" >
+                <button id="add top of paper">
                   <img src="icons/add top paper.svg" loading="lazy" alt="done">Add top paper
-
                 </button>
-            </div>
-            <div id="sliders">
+              </div>
+              <div id="sliders">
                 <label for="canvas-width">Canvas Width:</label>
                 <input type="range" id="canvas-width" min="0" max="100" value="100">
                 
@@ -609,12 +632,14 @@
                 
                 <label for="drawing-size">drawing-size:</label>
                 <input type="range" id="drawing-size" min="1" max="30" value="5">
+              </div>
             </div>
           </div>
-        </div>
         
     
-          <div class="input-box">
+          <!-- Font Settings Section -->
+          <div class="input-box control-section">
+            <h4 class="control-section-title">Font Settings</h4>
             <div class="input-row">
               <label for="font-size-input">Font Size:</label>
               <div class="slider-container">
@@ -731,7 +756,10 @@
               
               
           </div>
-          <div class="input-box">
+          
+          <!-- Margin Settings Section -->
+          <div class="input-box control-section">
+            <h4 class="control-section-title">Margin Settings</h4>
             <div class="input-row">
               <label for="margin-top-input">input_top_margin:</label>
               <div class="slider-container">
@@ -781,7 +809,10 @@
             </div>
             
           </div>
-          <div class="input-box">
+          
+          <!-- Spacing & Background Section -->
+          <div class="input-box control-section">
+            <h4 class="control-section-title">Spacing & Background</h4>
             <div class="input-row">
               <label for="line-spacing-text-input">input line spacing:</label>
               <div class="slider-container">
@@ -832,11 +863,9 @@
               
           </div>
           
-              
- <!-- HANDWRITING EFFECTS PANEL -->
-<div class="input-box">
-
-  <h3 style="margin-bottom: 10px;">Handwriting Effects</h3>
+          <!-- Handwriting Effects Section -->
+          <div class="input-box control-section">
+            <h4 class="control-section-title">Handwriting Effects</h4>
   
   <!-- NOTE -->
 <div style="
@@ -1026,53 +1055,29 @@ These effects may appear distorted in ruled paper so use simple paper.
     </div>
   </div>
 
-</div>
+          </div><!-- End Handwriting Effects Section -->
 
-              
-          
-      </div>
-      </div>
+        </div><!-- End controls-scroll -->
+      </div><!-- End controls-panel (LEFT PANEL) -->
       
-      <div id="pagination-controls" class="pagination-container">
-        <!-- Download Section - Left -->
-        <div class="pagination-download">
-          <select id="download_options" class="pagination-btn download-btn" onchange="handleDownload(this.value)">
-            <option value="">⬇️ Download</option>
-            <option value="image">📷 Current Page</option>
-            <option value="all-images">📄 All Images</option>
-          </select>
+      <!-- CENTER PANEL: Main Editor -->
+      <div id="editor-panel">
+        <div class="panel-header">
+          <h3>Text Editor</h3>
+          <!-- Page Navigation -->
+          <div class="editor-page-nav">
+            <button class="nav-btn-small" id="prevBtn" onclick="prevPage()">
+              <img src="icons/pervious page.svg" loading="lazy" alt="Previous">
+            </button>
+            <span id="pageNumber" class="page-number">1</span>
+            <button class="nav-btn-small" id="nextBtn" onclick="nextPage()">
+              <img src="icons/next page.svg" loading="lazy" alt="Next">
+            </button>
+          </div>
         </div>
         
-        <!-- Navigation Controls - Center -->
-        <div class="pagination-main">
-          <button class="pagination-btn nav-btn" id="prevBtn" onclick="prevPage()">
-            <img src="icons/pervious page.svg"  loading="lazy"  alt="Previous">
-          </button>
-        
-          <span id="pageNumber" class="page-number">1</span>
-        
-          <button class="pagination-btn nav-btn" id="nextBtn" onclick="nextPage()">
-            <img src="icons/next page.svg"  loading="lazy" alt="Next">
-          </button>
-        </div>
-        
-        <!-- Action Controls - Right -->
-        <div class="pagination-actions">
-          <button class="pagination-btn action-btn" onclick="deleteCurrentPage()">
-            <img src="icons/delete.svg" loading="lazy"  alt="Delete">
-            <span class="action-text">Delete</span>
-          </button>
-          
-          <button class="pagination-btn action-btn" id="creatnewpage" onclick="createNewPageInternal()">
-            <img src="icons/creat.svg"  loading="lazy" alt="Create">
-            <span class="action-text">New Page</span>
-          </button>
-        </div>
-      </div>
-        
-      </div>
-      
-      <div id="toolbar-container">
+        <!-- Toolbar -->
+        <div id="toolbar-container">
                 <span class="ql-formats">
                   <select class="ql-size"></select>
                 </span>
@@ -1186,38 +1191,33 @@ These effects may appear distorted in ruled paper so use simple paper.
 
 
               </div>
-      
-      <div id="outer-container">
         
-          <div id="final_page">
-
+        <!-- Paper Preview Area (where Quill writes directly) -->
+        <div id="editor-preview-area">
+          <div id="outer-container">
+            <div id="final_page">
               <div id="shadow-effect">
-                
-                  
-              
-                  <div id="heading_page">
-                      <div id="box">
-                          <div id="subbox"> </div>
-                          <div id="top-margin" contenteditable="true">Type Your Title  here </div>
-                      </div>
-                      <div id="content_page">
-                        <div id="left-margin">
-                          <div id="left-margin-in" contenteditable="true">write side content here ,example</div>
-                        </div>
-                          <div id="output-container">
-                              <div id="output-inner-container"  class="ql-editor"> to write here , write in the text  editor . Not here. </div>
-                              
-                          </div>
-                      </div>
+                <div id="heading_page">
+                  <div id="box">
+                    <div id="subbox"></div>
+                    <div id="top-margin" contenteditable="true">Type Your Title here</div>
                   </div>
+                  <div id="content_page">
+                    <div id="left-margin">
+                      <div id="left-margin-in" contenteditable="true">write side content here, example</div>
+                    </div>
+                    <div id="output-container">
+                      <div id="output-inner-container" class="ql-editor">to write here, write in the text editor. Not here.</div>
+                    </div>
+                  </div>
+                </div>
               </div>
+            </div>
           </div>
-          
-      </div>
+        </div>
+      </div><!-- End editor-panel (CENTER PANEL) -->
       
-
-      
-      
+    </div><!-- End editor-layout -->
       
   </section>
   

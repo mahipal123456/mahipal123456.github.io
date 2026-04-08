@@ -1721,8 +1721,11 @@ async function handleDownload(value) {
     downloadAllPagesAsImages();
   }
 
-  // Reset select dropdown
-  document.getElementById('download_options').value = '';
+  // Reset select dropdown(s)
+  const downloadOld = document.getElementById('download_options');
+  const downloadTop = document.getElementById('download_options_top');
+  if (downloadOld) downloadOld.value = '';
+  if (downloadTop) downloadTop.value = '';
 }
 
 // ========================================================

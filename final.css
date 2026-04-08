@@ -1894,68 +1894,40 @@ body {
 /* Firefox Scrollbar Styling */
 
 
-/* page layout and costumization  */
+/* page layout and customization  */
 
-/*  input container layout */
-#input-container1{
-    max-width: 1200px;
-    margin: 0.125rem auto;
-    background: #ffffff;
-    border: 1px solid rgba(229, 231, 235, 0.8);
-    border-radius: 4px;
-    overflow: hidden;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
-    padding: 0.375rem;
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-}
-
-#input-container1::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(135deg, rgba(59, 130, 246, 0.02) 0%, rgba(147, 197, 253, 0.02) 100%);
-    opacity: 1;
-    z-index: 0;
-}
-
-#input-container1 > * {
-    position: relative;
-    z-index: 1;
+/* Hide old input container structure - replaced by 3-panel layout */
+#input-container1,
+#input-container,
+.mode-section,
+#pagination-controls {
+    display: none !important;
 }
 
 
 
 
 
+/* Input boxes now styled within control sections */
 .input-boxes {
     display: flex;
-    gap: 0.25rem;
+    flex-direction: column;
+    gap: 12px;
     padding: 0;
     border-bottom: none;
-    overflow-x: auto;
-    overflow-y: hidden;
-    scroll-behavior: smooth;
-    
+    overflow: visible;
 }
 
 
 .input-box {
     background: #ffffff;
     border: 1px solid rgba(229, 231, 235, 0.6);
-    border-radius: 3px;
-    padding: 0.25rem;
+    border-radius: 8px;
+    padding: 12px;
     transition: all 0.15s ease;
     position: relative;
-    overflow: auto;
+    overflow: visible;
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
-    flex: 0 0 auto;
-    
 }
 .textarea-box{
   width: 100%;
@@ -1996,9 +1968,9 @@ body {
 /* .textarea-box {
 } */
 
-/* Compact Mode Toggle */
+/* Mode Toggle - now in top action bar */
 .mode-section {
-    margin-bottom: 0.375rem;
+    display: none;
 }
 
 .mode-toggle-btn {
@@ -2352,12 +2324,332 @@ display:none;
 
 }
 #section2{
-    padding: clamp(60px, 8vh, 100px) clamp(20px, 5vw, 40px);
+    padding: clamp(40px, 6vh, 60px) clamp(16px, 3vw, 24px);
     background: linear-gradient(135deg, #fafbfc 0%, #ffffff 100%);
     position: relative;
     border: none;
     border-radius: 0;
     box-shadow: none;
+}
+
+/* ============================================
+   TOP ACTION BAR - Global Actions
+   ============================================ */
+#top-action-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 12px 16px;
+    background: #ffffff;
+    border: 1px solid rgba(229, 231, 235, 0.8);
+    border-radius: 12px;
+    margin-bottom: 16px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.action-bar-left,
+.action-bar-center,
+.action-bar-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.action-bar-center {
+    justify-content: center;
+}
+
+.action-bar-right {
+    justify-content: flex-end;
+}
+
+.action-bar-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    background: #ffffff;
+    border: 1px solid rgba(229, 231, 235, 0.8);
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #4b5563;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.action-bar-btn:hover {
+    background: rgba(59, 130, 246, 0.05);
+    border-color: rgba(59, 130, 246, 0.3);
+    color: #3b82f6;
+}
+
+.action-bar-btn img {
+    width: 16px;
+    height: 16px;
+}
+
+.action-bar-btn.primary-action {
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    color: #ffffff;
+    border-color: transparent;
+}
+
+.action-bar-btn.primary-action:hover {
+    background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.action-bar-btn.download-btn {
+    background: #f8fafc;
+    cursor: pointer;
+}
+
+/* ============================================
+   2-PANEL LAYOUT - Controls + Editor/Preview
+   ============================================ */
+#editor-layout {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    gap: 16px;
+    height: calc(100vh - 200px);
+    min-height: 600px;
+}
+
+/* Panel Base Styles */
+#controls-panel,
+#editor-panel {
+    background: #ffffff;
+    border: 1px solid rgba(229, 231, 235, 0.8);
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background: #f8fafc;
+    border-bottom: 1px solid rgba(229, 231, 235, 0.8);
+    flex-shrink: 0;
+}
+
+.panel-header h3 {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #1f2937;
+    margin: 0;
+}
+
+/* ============================================
+   LEFT PANEL - Controls Sidebar
+   ============================================ */
+#controls-panel {
+    min-width: 0;
+}
+
+.controls-scroll {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.control-section {
+    background: #ffffff;
+    border: 1px solid rgba(229, 231, 235, 0.6);
+    border-radius: 10px;
+    padding: 12px;
+}
+
+.control-section-title {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #374151;
+    margin: 0 0 10px 0;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(229, 231, 235, 0.6);
+}
+
+/* ============================================
+   CENTER PANEL - Main Editor with Preview
+   ============================================ */
+#editor-panel {
+    flex: 1;
+    min-width: 0;
+}
+
+.editor-page-nav {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.nav-btn-small {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    background: #ffffff;
+    border: 1px solid rgba(229, 231, 235, 0.8);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.nav-btn-small:hover {
+    background: rgba(59, 130, 246, 0.05);
+    border-color: rgba(59, 130, 246, 0.3);
+}
+
+.nav-btn-small img {
+    width: 14px;
+    height: 14px;
+}
+
+.page-number {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #4b5563;
+    min-width: 40px;
+    text-align: center;
+}
+
+/* ============================================
+   EDITOR PREVIEW AREA - Paper Preview inside Editor Panel
+   ============================================ */
+#editor-preview-area {
+    flex: 1;
+    overflow: auto;
+    padding: 16px;
+    background: #f8fafc;
+}
+
+#editor-panel #outer-container {
+    border-top: none;
+    padding-top: 0;
+    height: auto;
+    overflow: visible;
+    display: flex;
+    justify-content: center;
+}
+
+#editor-panel #final_page {
+    margin: 0 auto;
+    max-width: 794px;
+    width: 100%;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+/* ============================================
+   RESPONSIVE LAYOUT
+   ============================================ */
+@media (max-width: 1200px) {
+    #editor-layout {
+        grid-template-columns: 260px 1fr;
+    }
+}
+
+@media (max-width: 992px) {
+    #editor-layout {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto 1fr;
+        height: auto;
+        min-height: auto;
+    }
+    
+    #controls-panel {
+        max-width: none;
+        order: 2;
+    }
+    
+    .controls-scroll {
+        max-height: 350px;
+    }
+    
+    #editor-panel {
+        min-width: auto;
+        order: 1;
+        min-height: 500px;
+    }
+}
+
+@media (max-width: 768px) {
+    #top-action-bar {
+        flex-wrap: wrap;
+        gap: 10px;
+        padding: 10px 12px;
+    }
+    
+    .action-bar-left,
+    .action-bar-center,
+    .action-bar-right {
+        flex: 1 1 auto;
+        justify-content: center;
+    }
+    
+    .action-bar-btn {
+        padding: 6px 10px;
+        font-size: 0.8rem;
+    }
+    
+    .action-bar-btn span {
+        display: none;
+    }
+    
+    #editor-layout {
+        gap: 12px;
+    }
+    
+    .controls-scroll {
+        flex-direction: row;
+        flex-wrap: wrap;
+        max-height: none;
+        overflow-x: auto;
+    }
+    
+    .control-section {
+        flex: 1 1 280px;
+        min-width: 250px;
+    }
+}
+
+@media (max-width: 480px) {
+    #section2 {
+        padding: 16px 12px;
+    }
+    
+    #top-action-bar {
+        padding: 8px 10px;
+        gap: 8px;
+    }
+    
+    .action-bar-btn {
+        padding: 6px 8px;
+    }
+    
+    .panel-header {
+        padding: 10px 12px;
+    }
+    
+    .panel-header h3 {
+        font-size: 0.875rem;
+    }
+    
+    .control-section {
+        min-width: 100%;
+    }
 }
 #box{
   
@@ -2398,17 +2690,12 @@ display:none;
     /* height: 100%; */
     
 }
+/* Outer container now inside preview panel */
 #outer-container{
-    border-top: 2px solid;
-    padding-top: 20px;
-    
-    height: 85vh;
-    /* display: flex;
-    overflow-wrap: anywhere;
-    
-    flex-wrap: wrap;
-    justify-content: space-around; */
-    overflow: scroll;
+    border-top: none;
+    padding-top: 0;
+    height: auto;
+    overflow: visible;
 }
 
 /*button typ2 - Compact strip version*/
@@ -2805,19 +3092,20 @@ overflow: scroll;
   border-radius: 3px;
 } */
 
-/* Modern Canvas Tools Container */
+/* Toolbar Container - within editor panel */
 #toolbar-container {
-    background: #ffffff;
-    border: 1px solid rgba(229, 231, 235, 0.8);
-    border-radius: 16px;
-    padding: clamp(12px, 3vw, 20px);
-    margin-bottom: clamp(12px, 3vh, 20px);
+    background: #f8fafc;
+    border-bottom: 1px solid rgba(229, 231, 235, 0.8);
+    border-radius: 0;
+    padding: 10px 12px;
+    margin-bottom: 0;
     display: flex;
-    overflow-x: scroll;
+    overflow-x: auto;
     align-items: center;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    box-shadow: none;
     transition: all 0.3s ease;
     position: relative;
+    flex-shrink: 0;
 }
 
 #toolbar-container .ql-formats {
