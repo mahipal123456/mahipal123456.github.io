@@ -19,22 +19,27 @@ class MyNavbar extends HTMLElement {
               </a>
             </li>
             <li class="nav-item">
+              <a href="#section2" class="nav-link" id="nav-converter">
+                <span class="nav-text">Converter</span>
+              </a>
+            </li>
+            <li class="nav-item">
               <a href="/Blog/" class="nav-link" id="nav-blog">
-                <span class="nav-text">How to Use</span>
+                <span class="nav-text">Guide</span>
               </a>
             </li>
             <li class="nav-item">
-              <a href="/#Contact" class="nav-link" id="nav-contact">
-                <span class="nav-text">Contact</span>
-              </a>
-            </li>
-            <li class="nav-item">
-              <a href="/#about" class="nav-link" id="nav-contact">
+              <a href="#about" class="nav-link" id="nav-about">
                 <span class="nav-text">About</span>
               </a>
             </li>
             <li class="nav-item">
-              <a href="/#support" class="nav-link support-btn">
+              <a href="#Contact" class="nav-link" id="nav-contact">
+                <span class="nav-text">Contact</span>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="#support" class="nav-link support-btn">
                 <span class="nav-text">Support Us</span>
               </a>
             </li>
