@@ -138,12 +138,12 @@ function initializeFAQ() {
 
 document.addEventListener("DOMContentLoaded", function () {
     const closeBtn = document.querySelector('.modern-close-btn');
-    setTimeout(showMainPopup, 60000); // Show main popup after 30 seconds
+    setTimeout(showMainPopup, 120000); // Show main popup after 30 seconds
     setTimeout(() => {
         if (closeBtn) {
             closeBtn.style.display = 'flex';
         }
-      }, 70000);
+      }, 128000);
 
     // Initialize FAQ functionality when DOM is loaded
     initializeFAQ();

@@ -23,7 +23,7 @@ class SupportUs extends HTMLElement {
     
     <h2 class="popup-title">Love This Site? Support Us!</h2>
     <p class="popup-description">
-      We give you premium features for free. Your support helps us keep working and making things better for you and everyone else.
+      This tool is free to use. If you find it helpful, you can support us to keep improving it.
     </p>
     
     <button class="popup-cta-button" onclick="redirectToSupport()">
@@ -49,7 +49,7 @@ class SupportUs extends HTMLElement {
         <polyline points="8.21,13.89 7,23 12,20 17,23 15.79,13.88"/>
       </svg>
     </div>
-    <span class="mini-popup-text">Enjoying this site? Support us!</span>
+    <span class="mini-popup-text">Support us!</span>
   </div>
 </div>
 
