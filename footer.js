@@ -6,7 +6,7 @@ class MyFooter extends HTMLElement {
       <div class="footer-inner">
         <div class="footer-content">
         <div class="footer-brand-section">
-          <h3 class="footer-brand">VERA</h3>
+          <h3 class="footer-brand">VERA | Text to Handwriting</h3>
           <p class="footer-description">Create beautiful handwritten documents with premium styles, math support, and creative customization. </p>
           
           <div class="footer-social-links">
@@ -79,7 +79,7 @@ class MyFooter extends HTMLElement {
         <div class="footer-divider"></div>
         <div class="footer-bottom-content">
           <div class="footer-left-content">
-            <p class="footer-copyright">© 2024 VERA. All rights reserved.</p>
+            <p class="footer-copyright">© 2024 VERA | Text to Handwriting Converter. All rights reserved.</p>
             <p class="footer-credit">Made with care by <a href="https://www.linkedin.com/in/mahipalkumawat810" target="_blank" class="creator-link">Mahipal Kumawat</a></p>
           </div>
         </div>

@@ -7,7 +7,7 @@ class MyNavbar extends HTMLElement {
           <div class="nav-brand">
             <a href="/" class="brand-link">
               <span class="brand-icon">V</span>
-              <span class="brand-text">VERA</span>
+              <span class="brand-text">VERA | Text to Handwriting</span>
             </a>
           </div>
 
